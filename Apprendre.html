@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carte mentale — PostgreSQL + PostGIS pour la géomatique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E7EAE1;
+  --paper-2:#F4F5EF;
+  --ink:#0F1A20;
+  --ink-2:#53606A;
+  --ink-3:#8C97A0;
+  --rule:rgba(15,26,32,.16);
+  --grid:rgba(15,26,32,.055);
+  --amber:#B07200;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"IBM Plex Sans Condensed",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px;
+  line-height:1.35;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:64px 64px,64px 64px;
+}
+
+/* ---------- Cartouche (en-tête façon légende de carte) ---------- */
+header.cartouche{
+  position:sticky;top:0;z-index:40;
+  background:rgba(231,234,225,.94);
+  backdrop-filter:blur(8px);
+  border-bottom:1.5px solid var(--ink);
+}
+.cartouche-in{max-width:1600px;margin:0 auto;padding:14px 22px 0}
+.titleline{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+h1{
+  font-family:"Bricolage Grotesque",Georgia,serif;
+  font-weight:800;font-size:clamp(22px,3.2vw,34px);
+  letter-spacing:-.02em;margin:0;line-height:1;
+}
+h1 .plus{color:var(--amber)}
+.sub{
+  font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-2);padding-bottom:3px;
+}
+.scalebar{display:flex;align-items:center;gap:7px;margin-left:auto;padding-bottom:2px}
+.scalebar .bar{display:flex;height:9px;border:1px solid var(--ink)}
+.scalebar .bar i{width:26px;display:block}
+.scalebar .bar i:nth-child(odd){background:var(--ink)}
+.scalebar span{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-2)}
+
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 10px}
+.search{position:relative;flex:1 1 300px;max-width:440px}
+.search input{
+  width:100%;padding:9px 34px 9px 12px;
+  border:1.5px solid var(--ink);background:var(--paper-2);color:var(--ink);
+  font-family:"JetBrains Mono",monospace;font-size:13px;border-radius:0;
+}
+.search input:focus{outline:2px solid var(--amber);outline-offset:1px}
+.search .clr{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  border:0;background:none;cursor:pointer;color:var(--ink-3);font-size:17px;line-height:1;padding:2px 4px;
+}
+button.tool{
+  border:1.5px solid var(--ink);background:transparent;color:var(--ink);
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:13px;
+  padding:8px 12px;cursor:pointer;letter-spacing:.02em;
+}
+button.tool:hover{background:var(--ink);color:var(--paper)}
+button.tool:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.count{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-2);margin-left:auto}
+
+.legend{display:flex;flex-wrap:wrap;gap:4px 6px;padding:0 0 12px}
+.legend button{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1px solid var(--rule);background:var(--paper-2);cursor:pointer;
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:12px;color:var(--ink-2);
+  padding:4px 9px 4px 6px;
+}
+.legend button:hover{border-color:var(--c);color:var(--ink)}
+.legend button i{width:9px;height:9px;background:var(--c);display:block;flex:none}
+
+/* ---------- Carte ---------- */
+main{max-width:1600px;margin:0 auto;padding:26px 22px 90px}
+.mapscroll{overflow-x:auto;padding-bottom:14px}
+#map{position:relative;display:inline-block;min-width:100%}
+#wires{position:absolute;inset:0;pointer-events:none;overflow:visible}
+#wires path{fill:none;stroke-linecap:round}
+
+.sub{display:flex;align-items:center;gap:26px}
+.children{display:flex;flex-direction:column;gap:5px;padding:5px 0}
+.sub.collapsed > .children{display:none}
+
+.node{position:relative;z-index:2;white-space:nowrap}
+
+/* racine */
+.node.root{
+  font-family:"Bricolage Grotesque",serif;font-weight:800;font-size:21px;
+  background:var(--ink);color:var(--paper);padding:14px 20px;letter-spacing:-.01em;
+  box-shadow:5px 5px 0 rgba(15,26,32,.18);
+}
+.node.root small{display:block;font-family:"JetBrains Mono",monospace;font-weight:400;font-size:10.5px;letter-spacing:.1em;opacity:.65;margin-top:5px}
+
+/* niveau 1 : branches */
+.node.l1 > button{
+  font-family:"Bricolage Grotesque",serif;font-weight:600;font-size:16.5px;letter-spacing:-.01em;
+  background:var(--paper-2);color:var(--ink);
+  border:0;border-left:5px solid var(--c);
+  padding:8px 13px 8px 11px;cursor:pointer;text-align:left;
+  box-shadow:0 1px 0 var(--c);
+}
+/* niveau 2 : sous-branches */
+.node.l2 > button{
+  font-size:14px;font-weight:600;color:var(--c);
+  background:transparent;border:0;border-bottom:1.5px solid var(--c);
+  padding:3px 4px;cursor:pointer;text-align:left;letter-spacing:.01em;
+}
+.node > button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.node > button .caret{display:inline-block;width:9px;font-size:10px;opacity:.5;margin-right:5px;transition:transform .18s}
+.sub.collapsed > .node > button .caret{transform:rotate(-90deg)}
+.node > button:hover .caret{opacity:1}
+
+/* feuilles : lignes de commande */
+.leaf{
+  white-space:normal;max-width:74ch;
+  padding:2px 0 2px 10px;border-left:2px solid transparent;
+  cursor:copy;
+}
+.leaf:hover{border-left-color:var(--c);background:rgba(255,255,255,.5)}
+.leaf code{
+  font-family:"JetBrains Mono",monospace;font-size:12.4px;line-height:1.45;
+  color:var(--ink);display:block;white-space:pre-wrap;word-break:break-word;
+}
+.leaf .note{
+  display:block;font-size:12px;color:var(--ink-2);font-style:italic;margin-top:1px;
+}
+.leaf.copied{background:rgba(176,114,0,.16);border-left-color:var(--amber)}
+.leaf mark, .node button mark{background:rgba(176,114,0,.3);color:inherit;padding:0 1px}
+
+.hidden{display:none !important}
+
+/* ---------- Pied ---------- */
+footer{
+  max-width:1600px;margin:0 auto;padding:20px 22px 50px;
+  border-top:1.5px solid var(--ink);
+  font-size:12.5px;color:var(--ink-2);
+  display:flex;gap:26px;flex-wrap:wrap;
+}
+footer b{color:var(--ink);font-weight:600}
+kbd{font-family:"JetBrains Mono",monospace;font-size:11px;border:1px solid var(--rule);padding:1px 4px;background:var(--paper-2)}
+
+#toast{
+  position:fixed;left:50%;bottom:24px;transform:translate(-50%,14px);
+  background:var(--ink);color:var(--paper);padding:9px 16px;
+  font-family:"JetBrains Mono",monospace;font-size:12px;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:60;
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- Mobile : arbre indenté, sans câbles ---------- */
+@media (max-width:900px){
+  #wires{display:none}
+  .sub{flex-direction:column;align-items:flex-start;gap:0}
+  .children{padding-left:14px;border-left:1.5px dotted var(--c);margin-left:6px;gap:7px}
+  .node.root{font-size:18px}
+  .leaf{max-width:100%}
+  main{padding:18px 14px 70px}
+}
+
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+
+@media print{
+  body{background:#fff}
+  header.cartouche{position:static}
+  .tools,.legend,footer,#toast{display:none}
+  .sub{break-inside:avoid}
+  .node.l1 > button{box-shadow:none}
+}
+</style>
+</head>
+<body>
+
+<header class="cartouche">
+  <div class="cartouche-in">
+    <div class="titleline">
+      <h1>PostgreSQL <span class="plus">+</span> PostGIS</h1>
+      <div class="sub">Carte mentale opérationnelle · géomatique</div>
+      <div class="scalebar">
+        <div class="bar"><i></i><i></i><i></i><i></i></div>
+        <span>cliquer une ligne = copier</span>
+      </div>
+    </div>
+
+    <div class="tools">
+      <div class="search">
+        <input id="q" type="search" placeholder="Filtrer : ST_Buffer, index, jointure, ogr2ogr…" autocomplete="off" spellcheck="false">
+        <button class="clr" id="clr" title="Effacer" aria-label="Effacer le filtre">×</button>
+      </div>
+      <button class="tool" id="expand">Tout déplier</button>
+      <button class="tool" id="collapse">Vue d'ensemble</button>
+      <button class="tool" id="print">Imprimer</button>
+      <span class="count" id="count"></span>
+    </div>
+
+    <nav class="legend" id="legend" aria-label="Branches"></nav>
+  </div>
+</header>
+
+<main>
+  <div class="mapscroll">
+    <div id="map"><svg id="wires" aria-hidden="true"></svg></div>
+  </div>
+</main>
+
+<footer>
+  <div><b>Lire la carte</b><br>Racine → branche → sous-branche → commande. Cliquer un titre plie/déplie.</div>
+  <div><b>Copier</b><br>Un clic sur une ligne de code la met dans le presse-papiers.</div>
+  <div><b>Chercher</b><br><kbd>/</kbd> place le curseur dans le filtre ; <kbd>Échap</kbd> l'efface.</div>
+  <div><b>Conventions</b><br><code style="font-family:'JetBrains Mono',monospace">geom</code> = colonne géométrique, <code style="font-family:'JetBrains Mono',monospace">t</code> = table, SRID d'exemple 4326 / 2953.</div>
+</footer>
+
+<div id="toast">Copié</div>
+
+<script>
+/* =======================================================================
+   DONNÉES DE LA CARTE
+   n = note ; ch = enfants ; feuille = nœud sans enfants
+   ======================================================================= */
+const DATA = [
+
+/* 1 ------------------------------------------------------------------ */
+{t:"psql & connexion", c:"#2E3A46", ch:[
+  {t:"Se connecter", ch:[
+    {t:`psql -h serveur -p 5432 -U utilisateur -d gis`},
+    {t:`psql "postgresql://user:mdp@serveur:5432/gis"`, n:"URI de connexion, pratique dans les scripts"},
+    {t:`export PGHOST= PGPORT= PGUSER= PGDATABASE=`, n:"variables d'environnement : évite de tout retaper"},
+    {t:`~/.pgpass  →  serveur:5432:gis:user:motdepasse`, n:"chmod 600 ; connexion sans mot de passe interactif"},
+    {t:`\\conninfo`, n:"à quoi suis-je connecté ?"}
+  ]},
+  {t:"Explorer (méta-commandes)", ch:[
+    {t:`\\l`, n:"lister les bases"},
+    {t:`\\c gis`, n:"changer de base"},
+    {t:`\\dt` , n:"tables du search_path — \\dt schema.*"},
+    {t:`\\d t`, n:"structure d'une table : colonnes, index, contraintes"},
+    {t:`\\d+ t`, n:"idem + taille et description"},
+    {t:`\\dn  \\du  \\dx  \\di  \\dv  \\df`, n:"schémas, rôles, extensions, index, vues, fonctions"},
+    {t:`\\df *ST_Buff*`, n:"chercher une fonction par motif"},
+    {t:`\\sf nom_fonction`, n:"afficher le code source d'une fonction"},
+    {t:`\\h CREATE INDEX`, n:"aide syntaxe SQL ;  \\?  = aide des méta-commandes"}
+  ]},
+  {t:"Confort & sortie", ch:[
+    {t:`\\x auto`, n:"affichage étendu (une colonne par ligne) — indispensable avec des géométries"},
+    {t:`\\timing on`, n:"temps d'exécution de chaque requête"},
+    {t:`\\pset pager off`, n:"désactiver le pager"},
+    {t:`\\i script.sql`, n:"exécuter un fichier ;  \\o sortie.txt = rediriger le résultat"},
+    {t:`\\e`, n:"éditer la dernière requête dans $EDITOR"},
+    {t:`\\watch 5`, n:"réexécuter la requête toutes les 5 s (monitoring)"}
+  ]},
+  {t:"En ligne de commande", ch:[
+    {t:`psql -d gis -f charger.sql`},
+    {t:`psql -d gis -c "SELECT postgis_version();"`},
+    {t:`psql -d gis -At -F';' -c "SELECT ..." > sortie.csv`, n:"-A sans alignement, -t sans en-tête, -F séparateur"},
+    {t:`psql -d gis -v ON_ERROR_STOP=1 -f script.sql`, n:"stopper au premier échec : à utiliser dans tout script de production"}
+  ]}
+]},
+
+/* 2 ------------------------------------------------------------------ */
+{t:"Bases, schémas, droits", c:"#6D3F86", ch:[
+  {t:"Base de données", ch:[
+    {t:`CREATE DATABASE gis TEMPLATE template0 ENCODING 'UTF8' LC_COLLATE 'fr_CA.UTF-8';`},
+    {t:`DROP DATABASE IF EXISTS gis;`},
+    {t:`ALTER DATABASE gis RENAME TO gis_2026;`},
+    {t:`SELECT pg_size_pretty(pg_database_size('gis'));`},
+    {t:`CREATE DATABASE copie TEMPLATE gis;`, n:"clone rapide (aucune connexion active sur le modèle)"}
+  ]},
+  {t:"Extensions", ch:[
+    {t:`CREATE EXTENSION IF NOT EXISTS postgis;`, n:"le socle : types et fonctions ST_*"},
+    {t:`CREATE EXTENSION postgis_raster;`, n:"rasters (PostGIS 3+ : extension séparée)"},
+    {t:`CREATE EXTENSION postgis_topology;`},
+    {t:`CREATE EXTENSION pgrouting;`, n:"calcul d'itinéraires sur réseau"},
+    {t:`CREATE EXTENSION pg_trgm;`, n:"recherche floue sur texte (toponymes)"},
+    {t:`CREATE EXTENSION hstore;  CREATE EXTENSION "uuid-ossp";`},
+    {t:`CREATE EXTENSION postgis_sfcgal;`, n:"3D avancée : ST_Extrude, ST_3DIntersection"},
+    {t:`SELECT postgis_full_version();`, n:"versions de GEOS, PROJ, GDAL — à vérifier avant de déboguer"},
+    {t:`SELECT * FROM pg_available_extensions ORDER BY name;`}
+  ]},
+  {t:"Schémas", ch:[
+    {t:`CREATE SCHEMA vecteur;  CREATE SCHEMA raster;  CREATE SCHEMA travail;`, n:"séparer données de référence, brouillons et livrables"},
+    {t:`SET search_path TO vecteur, public;`, n:"session seulement"},
+    {t:`ALTER DATABASE gis SET search_path = vecteur, topo, public;`, n:"persistant"},
+    {t:`ALTER TABLE t SET SCHEMA vecteur;`},
+    {t:`DROP SCHEMA travail CASCADE;`}
+  ]},
+  {t:"Rôles & privilèges", ch:[
+    {t:`CREATE ROLE lecteur LOGIN PASSWORD 'x';`},
+    {t:`CREATE ROLE geomatique NOLOGIN;  GRANT geomatique TO lecteur;`, n:"rôle de groupe : gérer les droits par équipe"},
+    {t:`GRANT USAGE ON SCHEMA vecteur TO lecteur;`},
+    {t:`GRANT SELECT ON ALL TABLES IN SCHEMA vecteur TO lecteur;`},
+    {t:`ALTER DEFAULT PRIVILEGES IN SCHEMA vecteur GRANT SELECT ON TABLES TO lecteur;`, n:"s'applique aussi aux futures tables — l'oubli classique"},
+    {t:`REVOKE ALL ON t FROM public;`},
+    {t:`\\dp t`, n:"inspecter les droits accordés sur une table"}
+  ]}
+]},
+
+/* 3 ------------------------------------------------------------------ */
+{t:"Tables & types", c:"#1F6E8C", ch:[
+  {t:"Créer", ch:[
+    {t:`CREATE TABLE parcelle (\n  id     bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  code   text NOT NULL UNIQUE,\n  surf   numeric(12,2) CHECK (surf > 0),\n  maj    timestamptz DEFAULT now(),\n  geom   geometry(MultiPolygon, 2953)\n);`},
+    {t:`CREATE TABLE t2 AS SELECT * FROM t WHERE ST_IsValid(geom);`, n:"CTAS : matérialiser un résultat de requête"},
+    {t:`CREATE TEMP TABLE tmp AS SELECT ...;`, n:"détruite en fin de session"},
+    {t:`CREATE UNLOGGED TABLE brouillon (...);`, n:"beaucoup plus rapide, non répliqué, perdu si crash"},
+    {t:`CREATE TABLE enfant (LIKE parent INCLUDING ALL);`}
+  ]},
+  {t:"Types courants", ch:[
+    {t:`text · varchar(n) · char(n)`, n:"préférer text : aucune pénalité de performance"},
+    {t:`integer · bigint · numeric(10,2) · double precision`, n:"numeric pour des montants/mesures exactes, double pour du calcul"},
+    {t:`boolean · date · timestamptz · interval`, n:"toujours timestamptz plutôt que timestamp"},
+    {t:`uuid · jsonb · text[] · hstore`},
+    {t:`geometry(Point,4326) · geography(Point,4326) · raster`},
+    {t:`SELECT 'POINT(0 0)'::geometry;`, n:"transtypage par ::"}
+  ]},
+  {t:"Contraintes", ch:[
+    {t:`PRIMARY KEY (id)  ·  UNIQUE (code)  ·  NOT NULL`},
+    {t:`CHECK (surf > 0 AND type IN ('res','com'))`},
+    {t:`FOREIGN KEY (parcelle_id) REFERENCES parcelle(id) ON DELETE CASCADE`},
+    {t:`ALTER TABLE t ADD CONSTRAINT geom_valide CHECK (ST_IsValid(geom));`, n:"barrage qualité à l'entrée"},
+    {t:`ALTER TABLE t ADD CONSTRAINT srid_ok CHECK (ST_SRID(geom) = 2953);`},
+    {t:`ALTER TABLE t DROP CONSTRAINT nom_contrainte;`}
+  ]},
+  {t:"Modifier", ch:[
+    {t:`ALTER TABLE t ADD COLUMN densite numeric;`},
+    {t:`ALTER TABLE t DROP COLUMN vieux_champ;`},
+    {t:`ALTER TABLE t RENAME COLUMN geom TO geometrie;`},
+    {t:`ALTER TABLE t ALTER COLUMN code TYPE integer USING code::integer;`, n:"USING = expression de conversion"},
+    {t:`ALTER TABLE t ALTER COLUMN maj SET DEFAULT now();`},
+    {t:`ALTER TABLE t RENAME TO parcelle_2026;`},
+    {t:`DROP TABLE IF EXISTS t CASCADE;`},
+    {t:`TRUNCATE t RESTART IDENTITY CASCADE;`, n:"vide instantanément et remet le compteur à zéro"}
+  ]},
+  {t:"Vues", ch:[
+    {t:`CREATE OR REPLACE VIEW v_parcelle_bati AS SELECT ...;`},
+    {t:`CREATE MATERIALIZED VIEW mv_synthese AS SELECT ... WITH DATA;`, n:"résultat stocké : idéal pour un fond de carte lourd"},
+    {t:`REFRESH MATERIALIZED VIEW CONCURRENTLY mv_synthese;`, n:"CONCURRENTLY exige un index unique sur la vue"},
+    {t:`COMMENT ON TABLE t IS 'Parcelles cadastrales, source X, 2026-01';`, n:"documenter dans la base, pas dans un fichier perdu"}
+  ]}
+]},
+
+/* 4 ------------------------------------------------------------------ */
+{t:"Données : insérer, modifier, charger", c:"#A34E1E", ch:[
+  {t:"Insérer", ch:[
+    {t:`INSERT INTO t (code, geom) VALUES ('P1', ST_GeomFromText('POINT(0 0)',2953));`},
+    {t:`INSERT INTO t (code, geom) SELECT code, geom FROM source WHERE ...;`},
+    {t:`INSERT INTO t (...) VALUES (...) RETURNING id;`, n:"récupérer la clé générée"},
+    {t:`INSERT INTO t (code, surf) VALUES ('P1', 10)\nON CONFLICT (code) DO UPDATE SET surf = EXCLUDED.surf, maj = now();`, n:"UPSERT : insérer ou mettre à jour"},
+    {t:`... ON CONFLICT DO NOTHING;`, n:"ignorer les doublons lors d'un rechargement"}
+  ]},
+  {t:"Modifier & supprimer", ch:[
+    {t:`UPDATE t SET surf = ST_Area(geom) WHERE surf IS NULL;`},
+    {t:`UPDATE t SET nom = c.nom FROM commune c WHERE ST_Within(t.geom, c.geom);`, n:"UPDATE ... FROM = mise à jour par jointure (y compris spatiale)"},
+    {t:`DELETE FROM t WHERE geom IS NULL OR ST_IsEmpty(geom);`},
+    {t:`DELETE FROM t USING doublons d WHERE t.id = d.id;`}
+  ]},
+  {t:"Charger du CSV", ch:[
+    {t:`COPY t FROM '/data/points.csv' WITH (FORMAT csv, HEADER true, DELIMITER ';', ENCODING 'LATIN1');`, n:"COPY = côté serveur, très rapide, exige des droits fichiers"},
+    {t:`\\copy t FROM 'points.csv' WITH (FORMAT csv, HEADER true)`, n:"\\copy = côté client : lit un fichier de VOTRE poste"},
+    {t:`\\copy (SELECT id, ST_AsText(geom) FROM t) TO 'export.csv' CSV HEADER`},
+    {t:`CREATE TABLE brut (x double precision, y double precision, nom text);\nUPDATE brut SET geom = ST_SetSRID(ST_MakePoint(x,y),4326);`, n:"recette CSV → points"}
+  ]},
+  {t:"Transactions", ch:[
+    {t:`BEGIN;  ...  COMMIT;`},
+    {t:`BEGIN;  SAVEPOINT s1;  ...  ROLLBACK TO s1;  COMMIT;`},
+    {t:`ROLLBACK;`, n:"le filet de sécurité avant tout UPDATE massif : tester dans une transaction ouverte"},
+    {t:`SELECT ... FOR UPDATE;`, n:"verrouiller les lignes lues"}
+  ]},
+  {t:"Nettoyer & valider", ch:[
+    {t:`SELECT coalesce(nom, 'inconnu'), nullif(code,'') FROM t;`},
+    {t:`UPDATE t SET nom = btrim(regexp_replace(nom,'\\s+',' ','g'));`, n:"espaces multiples et bords"},
+    {t:`SELECT code, count(*) FROM t GROUP BY code HAVING count(*) > 1;`, n:"détecter les doublons d'identifiant"},
+    {t:`UPDATE t SET geom = ST_MakeValid(geom) WHERE NOT ST_IsValid(geom);`}
+  ]}
+]},
+
+/* 5 ------------------------------------------------------------------ */
+{t:"Interroger : SELECT", c:"#2F5FA8", ch:[
+  {t:"Structure", ch:[
+    {t:`SELECT col AS alias FROM t WHERE ... ORDER BY ... LIMIT 10;`},
+    {t:`SELECT DISTINCT type FROM t;`},
+    {t:`SELECT DISTINCT ON (commune) commune, nom, surf FROM t ORDER BY commune, surf DESC;`, n:"la « meilleure » ligne par groupe — spécifique à PostgreSQL"},
+    {t:`ORDER BY surf DESC NULLS LAST, nom ASC`},
+    {t:`LIMIT 20 OFFSET 40`},
+    {t:`SELECT * FROM t TABLESAMPLE SYSTEM (1);`, n:"échantillon 1 % pour tester vite sur une grosse table"}
+  ]},
+  {t:"Filtrer", ch:[
+    {t:`WHERE type IN ('res','com') AND surf BETWEEN 100 AND 500`},
+    {t:`WHERE nom ILIKE '%rivière%'`, n:"ILIKE = insensible à la casse"},
+    {t:`WHERE nom ~* '^(rue|chemin)'`, n:"expression régulière"},
+    {t:`WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom)`},
+    {t:`WHERE maj >= now() - interval '30 days'`},
+    {t:`WHERE code = ANY (ARRAY['A','B','C'])`}
+  ]},
+  {t:"Calculer dans le SELECT", ch:[
+    {t:`SELECT CASE WHEN surf > 1000 THEN 'grand' WHEN surf > 100 THEN 'moyen' ELSE 'petit' END AS classe FROM t;`},
+    {t:`SELECT nom || ' (' || code || ')' AS etiquette FROM t;`},
+    {t:`SELECT round(ST_Area(geom)::numeric, 2) AS surface_m2 FROM t;`},
+    {t:`SELECT *, ST_Area(geom)/10000 AS ha FROM t;`}
+  ]}
+]},
+
+/* 6 ------------------------------------------------------------------ */
+{t:"Agréger & fenêtrer", c:"#7A6A17", ch:[
+  {t:"Agrégats", ch:[
+    {t:`count(*) · count(DISTINCT code) · sum(surf) · avg(surf) · min() · max()`},
+    {t:`string_agg(nom, ', ' ORDER BY nom)`, n:"concaténer les valeurs d'un groupe"},
+    {t:`array_agg(id)`},
+    {t:`percentile_cont(0.5) WITHIN GROUP (ORDER BY surf)`, n:"médiane"},
+    {t:`count(*) FILTER (WHERE type = 'res')`, n:"compte conditionnel, plus lisible qu'un CASE"},
+    {t:`ST_Union(geom) · ST_Collect(geom) · ST_Extent(geom)`, n:"agrégats spatiaux (voir branche Géotraitement)"}
+  ]},
+  {t:"Regrouper", ch:[
+    {t:`SELECT type, count(*) FROM t GROUP BY type ORDER BY 2 DESC;`},
+    {t:`... GROUP BY type HAVING count(*) > 10;`, n:"HAVING filtre APRÈS agrégation, WHERE avant"},
+    {t:`GROUP BY ROLLUP (region, type)`, n:"sous-totaux + total général"},
+    {t:`GROUP BY GROUPING SETS ((region),(type),())`}
+  ]},
+  {t:"Fonctions fenêtre", ch:[
+    {t:`row_number() OVER (PARTITION BY commune ORDER BY surf DESC)`, n:"numéroter dans chaque groupe → top N par groupe"},
+    {t:`rank() · dense_rank() · ntile(4) OVER (...)`},
+    {t:`lag(valeur) OVER (ORDER BY date) · lead(...)`, n:"comparer à la ligne précédente/suivante (séries temporelles)"},
+    {t:`sum(surf) OVER (PARTITION BY commune)`, n:"total du groupe conservé sur chaque ligne"},
+    {t:`avg(x) OVER (ORDER BY d ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)`, n:"moyenne mobile"},
+    {t:`ST_ClusterKMeans(geom, 5) OVER ()`, n:"le clustering PostGIS s'écrit comme une fenêtre"}
+  ]}
+]},
+
+/* 7 ------------------------------------------------------------------ */
+{t:"Jointures & requêtes avancées", c:"#8C2F4B", ch:[
+  {t:"Jointures", ch:[
+    {t:`FROM a JOIN b ON a.id = b.a_id`, n:"INNER : seulement les correspondances"},
+    {t:`FROM a LEFT JOIN b ON ...`, n:"garde tout a ; b à NULL si rien"},
+    {t:`FROM a FULL JOIN b USING (code)`},
+    {t:`FROM a CROSS JOIN b`, n:"produit cartésien — attention à la volumétrie"},
+    {t:`FROM a JOIN b ON ST_Intersects(a.geom, b.geom)`, n:"jointure spatiale : la condition est un prédicat ST_*"},
+    {t:`FROM a LEFT JOIN b ON ST_DWithin(a.geom, b.geom, 100)`, n:"jointure par proximité (index utilisé)"}
+  ]},
+  {t:"LATERAL", ch:[
+    {t:`SELECT a.*, v.*\nFROM arret a\nCROSS JOIN LATERAL (\n  SELECT nom, geom <-> a.geom AS d\n  FROM ecole ORDER BY geom <-> a.geom LIMIT 1\n) v;`, n:"le plus proche voisin : le motif à retenir"},
+    {t:`LEFT JOIN LATERAL (...) ON true`, n:"conserver les lignes sans correspondance"}
+  ]},
+  {t:"Sous-requêtes", ch:[
+    {t:`WHERE EXISTS (SELECT 1 FROM b WHERE b.a_id = a.id)`, n:"plus rapide que IN sur de gros volumes"},
+    {t:`WHERE id NOT IN (SELECT id FROM exclus)`, n:"piège : NULL dans la sous-requête annule tout le résultat"},
+    {t:`SELECT (SELECT max(surf) FROM t) AS max_global`},
+    {t:`FROM (SELECT ...) AS s`, n:"sous-requête dérivée (alias obligatoire)"}
+  ]},
+  {t:"CTE — WITH", ch:[
+    {t:`WITH zone AS (\n  SELECT ST_Buffer(geom, 500) AS geom FROM ecole\n)\nSELECT b.* FROM bati b JOIN zone z ON ST_Intersects(b.geom, z.geom);`, n:"découper une analyse en étapes lisibles"},
+    {t:`WITH RECURSIVE amont AS (...)`, n:"remonter un réseau hydrographique ou une hiérarchie"},
+    {t:`WITH maj AS (UPDATE t SET ... RETURNING *) SELECT * FROM maj;`, n:"CTE en écriture"},
+    {t:`WITH x AS MATERIALIZED (...)`, n:"forcer le calcul une seule fois (PG 12+)"}
+  ]},
+  {t:"Ensembles & séries", ch:[
+    {t:`UNION` , n:"dédoublonne — UNION ALL est bien plus rapide si inutile"},
+    {t:`INTERSECT · EXCEPT`},
+    {t:`SELECT generate_series(1,10)`},
+    {t:`SELECT generate_series('2026-01-01'::date, '2026-12-01', '1 month')`, n:"générer un calendrier pour combler les trous"}
+  ]}
+]},
+
+/* 8 ------------------------------------------------------------------ */
+{t:"Fonctions SQL utiles", c:"#3F7A3A", ch:[
+  {t:"Texte", ch:[
+    {t:`upper() · lower() · initcap()`},
+    {t:`btrim(s) · ltrim · rtrim · lpad(code,5,'0')`},
+    {t:`split_part('A-B-C','-',2)`, n:"→ B ; découper un code composé"},
+    {t:`substring(s from 1 for 3) · left(s,3) · right(s,2)`},
+    {t:`replace(s,'a','b') · regexp_replace(s,'\\d+','','g')`},
+    {t:`regexp_matches(s,'(\\d{4})')`, n:"extraire par motif"},
+    {t:`format('%s : %s m²', nom, surf)`},
+    {t:`concat_ws(' ', num, rue, ville)`, n:"ignore les NULL — idéal pour des adresses"},
+    {t:`similarity(a,b)`, n:"pg_trgm : rapprocher des toponymes mal orthographiés"}
+  ]},
+  {t:"Nombres", ch:[
+    {t:`round(x, 2) · trunc(x) · ceil(x) · floor(x)`},
+    {t:`abs() · mod(a,b) · power(a,b) · sqrt()`},
+    {t:`random() · setseed(0.5)`},
+    {t:`width_bucket(x, 0, 100, 5)`, n:"classer en intervalles (choroplèthes)"},
+    {t:`greatest(a,b) · least(a,b)`}
+  ]},
+  {t:"Dates", ch:[
+    {t:`now() · current_date · clock_timestamp()`},
+    {t:`date_trunc('month', maj)`, n:"regrouper par mois/jour/heure"},
+    {t:`extract(year FROM maj) · extract(epoch FROM d2 - d1)`},
+    {t:`age(now(), maj) · maj + interval '1 day'`},
+    {t:`to_char(maj,'YYYY-MM-DD HH24:MI') · to_date('01/2026','MM/YYYY')`},
+    {t:`maj AT TIME ZONE 'America/Moncton'`}
+  ]},
+  {t:"NULL & conversion", ch:[
+    {t:`coalesce(a, b, 'défaut')`, n:"première valeur non nulle"},
+    {t:`nullif(valeur, -9999)`, n:"transformer un code sentinelle en NULL"},
+    {t:`x::numeric · cast(x AS integer) · x::text`},
+    {t:`SELECT * FROM t WHERE col IS DISTINCT FROM 'a';`, n:"comparaison sûre avec les NULL"}
+  ]},
+  {t:"JSON & tableaux", ch:[
+    {t:`data->'cle'  ·  data->>'cle'`, n:"-> renvoie du json, ->> du texte"},
+    {t:`data #>> '{a,b}'`, n:"chemin imbriqué"},
+    {t:`jsonb_build_object('type','Feature','geometry',ST_AsGeoJSON(geom)::json)`},
+    {t:`jsonb_array_elements(data->'features')`, n:"éclater un tableau JSON en lignes"},
+    {t:`unnest(ARRAY['a','b'])  ·  array_length(arr,1)  ·  arr @> ARRAY['a']`},
+    {t:`row_to_json(t) · to_jsonb(t)`}
+  ]}
+]},
+
+/* 9 ------------------------------------------------------------------ */
+{t:"Index & performance", c:"#B07200", ch:[
+  {t:"Index spatial — le réflexe n°1", ch:[
+    {t:`CREATE INDEX idx_t_geom ON t USING GIST (geom);`, n:"sans lui, toute requête spatiale balaie la table entière"},
+    {t:`CREATE INDEX ON t USING GIST (geom) WHERE type = 'res';`, n:"index partiel"},
+    {t:`CREATE INDEX ON t USING GIST (geography(geom));`, n:"si vous interrogez en geography"},
+    {t:`CREATE INDEX ON t USING SPGIST (geom);`, n:"alternative efficace pour des points"},
+    {t:`VACUUM ANALYZE t;`, n:"toujours APRÈS création d'index / chargement massif"},
+    {t:`CLUSTER t USING idx_t_geom;`, n:"réordonne physiquement : gros gain sur les lectures par emprise"}
+  ]},
+  {t:"Index classiques", ch:[
+    {t:`CREATE INDEX ON t (code);`, n:"B-tree : égalité, tri, intervalles"},
+    {t:`CREATE UNIQUE INDEX ON t (code);`},
+    {t:`CREATE INDEX ON t (lower(nom));`, n:"index sur expression — la requête doit utiliser la même expression"},
+    {t:`CREATE INDEX ON t USING GIN (data jsonb_path_ops);`, n:"jsonb, tableaux, texte intégral"},
+    {t:`CREATE INDEX ON t USING GIN (nom gin_trgm_ops);`, n:"recherche floue / LIKE '%…%'"},
+    {t:`CREATE INDEX ON t USING BRIN (maj);`, n:"très léger, pour de gros volumes déjà ordonnés (dates, capteurs)"},
+    {t:`DROP INDEX CONCURRENTLY idx;  REINDEX INDEX idx;`},
+    {t:`CREATE INDEX CONCURRENTLY ...`, n:"sans bloquer les écritures (plus lent)"}
+  ]},
+  {t:"Diagnostiquer", ch:[
+    {t:`EXPLAIN (ANALYZE, BUFFERS) SELECT ...;`, n:"le seul juge : chercher « Seq Scan » sur une grosse table"},
+    {t:`EXPLAIN (ANALYZE, FORMAT JSON) ...`},
+    {t:`SELECT * FROM pg_stat_user_indexes WHERE idx_scan = 0;`, n:"index jamais utilisés → à supprimer"},
+    {t:`SELECT * FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;`, n:"les requêtes les plus coûteuses"},
+    {t:`SELECT pg_size_pretty(pg_total_relation_size('t'));`}
+  ]},
+  {t:"Bonnes pratiques spatiales", ch:[
+    {t:`ST_DWithin(a, b, 500)`, n:"préférer à ST_Distance(a,b) < 500 : seul le premier utilise l'index"},
+    {t:`ST_Intersects(a, b)`, n:"inclut déjà le filtre bbox && ; ne pas l'écrire à la main"},
+    {t:`CREATE TABLE decoupe AS SELECT id, ST_Subdivide(geom, 255) AS geom FROM grand_polygone;`, n:"découper les très gros polygones : gain souvent x10"},
+    {t:`WHERE ST_Intersects(geom, ST_Transform(:emprise, 2953))`, n:"transformer l'emprise, jamais la colonne indexée"},
+    {t:`SET work_mem = '256MB';`, n:"session : tris et jointures volumineuses"},
+    {t:`SET maintenance_work_mem = '1GB';`, n:"accélère fortement CREATE INDEX / VACUUM"},
+    {t:`SET max_parallel_workers_per_gather = 4;`}
+  ]}
+]},
+
+/* 10 ----------------------------------------------------------------- */
+{t:"PostGIS — fondations", c:"#0E6FA8", ch:[
+  {t:"Types", ch:[
+    {t:`geometry`, n:"plan cartésien : rapide, unités de la projection (m si projeté)"},
+    {t:`geography`, n:"sphéroïde : distances/aires en mètres, moins de fonctions, plus lent"},
+    {t:`geometry(MultiPolygon, 2953)`, n:"typage strict recommandé : bloque les mélanges"},
+    {t:`Point · LineString · Polygon · MultiPoint · MultiLineString · MultiPolygon · GeometryCollection`},
+    {t:`PointZ · PointM · PointZM`, n:"3D et mesure linéaire (référencement linéaire)"},
+    {t:`SELECT ST_Length(geom::geography) FROM route;`, n:"astuce : transtyper ponctuellement pour des mètres réels"}
+  ]},
+  {t:"SRID & métadonnées", ch:[
+    {t:`4326`, n:"WGS 84, degrés — GPS, GeoJSON, échanges"},
+    {t:`3857`, n:"Web Mercator — fonds de carte web uniquement, jamais pour mesurer"},
+    {t:`2953`, n:"NAD83(CSRS) New Brunswick Stereographic — mètres"},
+    {t:`2960 / 2961`, n:"NAD83(CSRS) UTM 19N / 20N — Est du Canada"},
+    {t:`3979`, n:"NAD83(CSRS) Canada Atlas Lambert — cartes nationales"},
+    {t:`SELECT srid, auth_name, proj4text FROM spatial_ref_sys WHERE srid = 2953;`},
+    {t:`SELECT * FROM geometry_columns;`, n:"inventaire des colonnes géométriques de la base"},
+    {t:`SELECT Find_SRID('public','t','geom');`}
+  ]},
+  {t:"Déclarer une géométrie", ch:[
+    {t:`ALTER TABLE t ADD COLUMN geom geometry(Point, 4326);`, n:"méthode moderne à privilégier"},
+    {t:`SELECT AddGeometryColumn('public','t','geom',2953,'MULTIPOLYGON',2);`, n:"héritée mais encore courante"},
+    {t:`SELECT UpdateGeometrySRID('public','t','geom',2953);`, n:"corriger un SRID mal déclaré SANS reprojeter"},
+    {t:`SELECT DropGeometryColumn('public','t','geom');`}
+  ]},
+  {t:"Construire", ch:[
+    {t:`ST_SetSRID(ST_MakePoint(lon, lat), 4326)`, n:"attention à l'ordre : X puis Y, donc lon puis lat"},
+    {t:`ST_Point(lon, lat, 4326)`, n:"PostGIS 3.2+ : SRID directement"},
+    {t:`ST_GeomFromText('POLYGON((0 0,1 0,1 1,0 0))', 2953)`},
+    {t:`ST_GeomFromGeoJSON('{"type":"Point","coordinates":[0,0]}')`},
+    {t:`ST_GeomFromEWKT('SRID=4326;POINT(0 0)')`},
+    {t:`ST_MakeLine(geom ORDER BY ordre)`, n:"relier des points en trace GPS"},
+    {t:`ST_MakePolygon(ST_MakeLine(...))`},
+    {t:`ST_MakeEnvelope(xmin, ymin, xmax, ymax, 4326)`, n:"rectangle d'emprise"}
+  ]},
+  {t:"Exporter une géométrie", ch:[
+    {t:`ST_AsText(geom) · ST_AsEWKT(geom)`, n:"EWKT inclut le SRID"},
+    {t:`ST_AsGeoJSON(geom, 6)`, n:"6 décimales suffisent en degrés (~10 cm)"},
+    {t:`ST_AsMVT(...) · ST_AsMVTGeom(...)`, n:"tuiles vectorielles"},
+    {t:`ST_AsBinary · ST_AsEWKB · ST_AsKML · ST_AsGML · ST_AsSVG`}
+  ]}
+]},
+
+/* 11 ----------------------------------------------------------------- */
+{t:"PostGIS — mesurer & inspecter", c:"#147A6E", ch:[
+  {t:"Inspecter", ch:[
+    {t:`ST_SRID(geom) · ST_GeometryType(geom) · GeometryType(geom)`},
+    {t:`ST_NDims(geom) · ST_CoordDim(geom) · ST_IsEmpty(geom)`},
+    {t:`ST_NPoints(geom) · ST_NumGeometries(geom) · ST_NumInteriorRings(geom)`},
+    {t:`ST_X(pt) · ST_Y(pt) · ST_Z(pt)`},
+    {t:`ST_StartPoint(l) · ST_EndPoint(l) · ST_PointN(l, 2)`},
+    {t:`ST_Dump(geom)`, n:"multi → simples, une ligne par partie"},
+    {t:`ST_DumpPoints(geom)`, n:"tous les sommets, avec leur chemin"},
+    {t:`ST_Summary(geom)`, n:"résumé lisible : type, SRID, nb de points"}
+  ]},
+  {t:"Valider", ch:[
+    {t:`SELECT id, ST_IsValidReason(geom) FROM t WHERE NOT ST_IsValid(geom);`, n:"le premier contrôle qualité à lancer sur toute donnée reçue"},
+    {t:`ST_MakeValid(geom)`, n:"répare auto-intersections, anneaux mal orientés…"},
+    {t:`ST_IsSimple(geom)`, n:"lignes sans auto-intersection"},
+    {t:`ST_IsClosed(geom) · ST_IsRing(geom)`},
+    {t:`SELECT ST_GeometryType(geom), count(*) FROM t GROUP BY 1;`, n:"détecter des types mélangés"},
+    {t:`SELECT ST_SRID(geom), count(*) FROM t GROUP BY 1;`, n:"détecter des SRID mélangés"}
+  ]},
+  {t:"Mesurer", ch:[
+    {t:`ST_Area(geom)`, n:"unités du SRID : projeter avant de mesurer"},
+    {t:`ST_Area(geom::geography)`, n:"m² réels, même depuis du 4326"},
+    {t:`ST_Length(geom) · ST_Perimeter(geom) · ST_3DLength(geom)`},
+    {t:`ST_Distance(a, b) · ST_MaxDistance(a, b)`},
+    {t:`ST_DistanceSphere(a, b)`, n:"rapide et suffisant sur du 4326"},
+    {t:`ST_Azimuth(a, b) * 180/pi()`, n:"gisement en degrés"},
+    {t:`ST_ClosestPoint(a, b) · ST_ShortestLine(a, b)`}
+  ]},
+  {t:"Points remarquables", ch:[
+    {t:`ST_Centroid(geom)`, n:"peut tomber HORS du polygone"},
+    {t:`ST_PointOnSurface(geom)`, n:"garanti à l'intérieur — pour étiqueter"},
+    {t:`ST_Envelope(geom) · ST_Extent(geom)`, n:"ST_Extent est un agrégat : emprise d'une couche"},
+    {t:`ST_Boundary(geom) · ST_ExteriorRing(poly)`},
+    {t:`ST_LineInterpolatePoint(l, 0.5)`, n:"point à 50 % de la ligne"},
+    {t:`ST_LineLocatePoint(l, pt) · ST_LineSubstring(l, 0.2, 0.8)`, n:"référencement linéaire (PR, événements routiers)"}
+  ]}
+]},
+
+/* 12 ----------------------------------------------------------------- */
+{t:"PostGIS — relations spatiales", c:"#4A4FA0", ch:[
+  {t:"Prédicats", ch:[
+    {t:`ST_Intersects(a, b)`, n:"le plus utilisé : partagent au moins un point"},
+    {t:`ST_Contains(a, b) · ST_Within(b, a)`, n:"symétriques l'un de l'autre"},
+    {t:`ST_Covers / ST_CoveredBy`, n:"comme Contains mais tolérant sur les frontières"},
+    {t:`ST_Touches · ST_Crosses · ST_Overlaps · ST_Disjoint`},
+    {t:`ST_Equals(a, b)`, n:"même géométrie, ordre des sommets indifférent"},
+    {t:`ST_Relate(a, b, 'T*F**F***')`, n:"matrice DE-9IM : cas fins"}
+  ]},
+  {t:"Proximité", ch:[
+    {t:`ST_DWithin(a, b, 500)`, n:"à moins de 500 unités — utilise l'index GiST"},
+    {t:`ST_DWithin(a::geography, b::geography, 500)`, n:"500 mètres réels"},
+    {t:`geom <-> point`, n:"opérateur KNN : distance, exploite l'index quand il est dans ORDER BY"},
+    {t:`ORDER BY geom <-> ST_SetSRID(ST_MakePoint(x,y),2953) LIMIT 5;`, n:"les 5 objets les plus proches"},
+    {t:`a && b`, n:"boîtes englobantes qui se croisent — filtre grossier très rapide"}
+  ]}
+]},
+
+/* 13 ----------------------------------------------------------------- */
+{t:"PostGIS — géotraitement", c:"#0B6E4F", ch:[
+  {t:"Superposition", ch:[
+    {t:`ST_Intersection(a, b)`, n:"découpage (clip) : partie commune"},
+    {t:`ST_Difference(a, b)`, n:"effacement (erase) : a moins b"},
+    {t:`ST_SymDifference(a, b)`},
+    {t:`ST_Union(geom)`, n:"agrégat = fusion/dissolve, coûteux mais topologiquement propre"},
+    {t:`ST_Collect(geom)`, n:"agrégat = simple regroupement, très rapide, sans fusion"},
+    {t:`ST_Split(ligne, lame) · ST_Node(lignes)`, n:"découper / créer les nœuds d'intersection"},
+    {t:`ST_Polygonize(ST_Node(ST_Collect(geom)))`, n:"construire des polygones à partir de lignes fermées"}
+  ]},
+  {t:"Tampons & enveloppes", ch:[
+    {t:`ST_Buffer(geom, 100)`, n:"unités du SRID"},
+    {t:`ST_Buffer(geom::geography, 100)::geometry`, n:"tampon de 100 m depuis du 4326"},
+    {t:`ST_Buffer(geom, 50, 'endcap=flat join=mitre')`},
+    {t:`ST_Buffer(geom, -5)`, n:"tampon négatif : érosion du polygone"},
+    {t:`ST_ConvexHull(geom) · ST_ConcaveHull(geom, 0.9)`},
+    {t:`ST_MinimumBoundingCircle · ST_OrientedEnvelope`},
+    {t:`ST_OffsetCurve(l, 5)`, n:"parallèle à une ligne"}
+  ]},
+  {t:"Reprojeter & recaler", ch:[
+    {t:`ST_Transform(geom, 3857)`, n:"REPROJETTE réellement les coordonnées"},
+    {t:`ST_SetSRID(geom, 4326)`, n:"CHANGE seulement l'étiquette — ne bouge rien"},
+    {t:`ALTER TABLE t ALTER COLUMN geom TYPE geometry(MultiPolygon,2953)\n  USING ST_Transform(geom, 2953);`, n:"reprojeter une couche entière en place"},
+    {t:`ST_Translate · ST_Scale · ST_Rotate(geom, pi()/4) · ST_Affine`},
+    {t:`ST_Snap(a, b, 0.5) · ST_SnapToGrid(geom, 0.01)`, n:"caler des sommets, supprimer le bruit numérique"}
+  ]},
+  {t:"Simplifier & convertir", ch:[
+    {t:`ST_SimplifyPreserveTopology(geom, 10)`, n:"généralisation sans casser les polygones"},
+    {t:`ST_Simplify(geom, 10)`, n:"Douglas-Peucker brut, plus rapide"},
+    {t:`ST_Multi(geom) · ST_CollectionExtract(geom, 3)`, n:"3 = polygones ; nettoyer un résultat d'intersection"},
+    {t:`ST_Force2D(geom) · ST_Force3D · ST_Reverse(geom)`},
+    {t:`ST_RemoveRepeatedPoints(geom) · ST_Segmentize(geom, 10)`},
+    {t:`ST_Subdivide(geom, 255)`, n:"découper les monstres pour la performance"}
+  ]},
+  {t:"Générer & regrouper", ch:[
+    {t:`ST_HexagonGrid(1000, ST_Extent(geom))`, n:"grille hexagonale (PostGIS 3.1+)"},
+    {t:`ST_SquareGrid(500, ST_Extent(geom))`},
+    {t:`ST_Voronoi(ST_Collect(geom)) · ST_DelaunayTriangles(...)`},
+    {t:`ST_ClusterDBSCAN(geom, eps := 100, minpoints := 5) OVER ()`, n:"détection de foyers/agrégats"},
+    {t:`ST_ClusterKMeans(geom, 8) OVER ()`},
+    {t:`ST_GeneratePoints(geom, 100)`, n:"points aléatoires dans un polygone (échantillonnage)"},
+    {t:`ST_TileEnvelope(z, x, y)`, n:"emprise d'une tuile XYZ"}
+  ]},
+  {t:"Raster (aperçu)", ch:[
+    {t:`ST_Value(rast, pt)`, n:"valeur du pixel sous un point (MNT, altitude)"},
+    {t:`ST_Clip(rast, geom, true)`, n:"découper un raster par un polygone"},
+    {t:`ST_SummaryStats(ST_Clip(rast, geom))`, n:"statistiques zonales"},
+    {t:`ST_Intersection(rast, geom)`},
+    {t:`ST_Slope · ST_Aspect · ST_HillShade`},
+    {t:`ST_AsRaster · ST_Union(rast) · ST_Resample`},
+    {t:`ST_DumpAsPolygons(rast)`, n:"raster → vecteur"}
+  ]}
+]},
+
+/* 14 ----------------------------------------------------------------- */
+{t:"Recettes géomatiques", c:"#A83A2A", ch:[
+  {t:"Jointure spatiale", ch:[
+    {t:`SELECT p.id, c.nom AS commune\nFROM parcelle p\nJOIN commune c ON ST_Intersects(p.geom, c.geom);`},
+    {t:`SELECT p.id, c.nom\nFROM parcelle p\nJOIN commune c ON ST_Contains(c.geom, ST_PointOnSurface(p.geom));`, n:"une seule commune par parcelle : jointure par point représentatif"}
+  ]},
+  {t:"Compter des points par polygone", ch:[
+    {t:`SELECT c.id, c.nom, count(p.id) AS nb\nFROM commune c\nLEFT JOIN point p ON ST_Intersects(c.geom, p.geom)\nGROUP BY c.id, c.nom;`, n:"LEFT JOIN pour garder les communes à zéro"},
+    {t:`SELECT c.id, count(p.*) / (ST_Area(c.geom)/1e6) AS densite_km2 ...`}
+  ]},
+  {t:"Fusion par attribut (dissolve)", ch:[
+    {t:`SELECT type, ST_Union(geom) AS geom, sum(surf) AS surf\nFROM parcelle GROUP BY type;`},
+    {t:`SELECT (ST_Dump(ST_Union(geom))).geom FROM t;`, n:"fusionner puis ré-éclater en entités simples"}
+  ]},
+  {t:"Zone tampon puis sélection", ch:[
+    {t:`WITH zone AS (\n  SELECT ST_Union(ST_Buffer(geom, 500)) AS geom FROM ecole\n)\nSELECT b.* FROM bati b, zone z\nWHERE ST_Intersects(b.geom, z.geom);`},
+    {t:`SELECT b.*, ST_Area(ST_Intersection(b.geom, z.geom)) AS surf_touchee ...`, n:"surface réellement affectée"}
+  ]},
+  {t:"Découper sur une emprise", ch:[
+    {t:`CREATE TABLE extrait AS\nSELECT t.id, ST_CollectionExtract(ST_Intersection(t.geom, e.geom), 3) AS geom\nFROM t JOIN emprise e ON ST_Intersects(t.geom, e.geom);`, n:"CollectionExtract évite les résidus de type mixte"}
+  ]},
+  {t:"Plus proche voisin", ch:[
+    {t:`SELECT a.id, v.nom, round(v.d::numeric,1) AS dist_m\nFROM adresse a\nCROSS JOIN LATERAL (\n  SELECT nom, geom <-> a.geom AS d\n  FROM borne ORDER BY geom <-> a.geom LIMIT 1\n) v;`}
+  ]},
+  {t:"Contrôle qualité d'une livraison", ch:[
+    {t:`SELECT count(*) FILTER (WHERE NOT ST_IsValid(geom)) AS invalides,\n       count(*) FILTER (WHERE geom IS NULL) AS sans_geom,\n       count(DISTINCT ST_SRID(geom)) AS nb_srid,\n       count(DISTINCT GeometryType(geom)) AS nb_types\nFROM t;`, n:"le bilan à lancer sur toute donnée reçue"},
+    {t:`SELECT a.id, b.id FROM t a JOIN t b ON a.id < b.id AND ST_Equals(a.geom, b.geom);`, n:"géométries dupliquées"},
+    {t:`SELECT a.id FROM t a JOIN t b ON a.id <> b.id AND ST_Overlaps(a.geom, b.geom);`, n:"chevauchements interdits (cadastre, zonage)"}
+  ]},
+  {t:"Agréger sur une grille", ch:[
+    {t:`SELECT h.geom, count(p.*) AS nb\nFROM ST_HexagonGrid(1000, ST_SetSRID(ST_EstimatedExtent('t','geom'),2953)) h\nLEFT JOIN point p ON ST_Intersects(h.geom, p.geom)\nGROUP BY h.geom;`}
+  ]},
+  {t:"Tuiles vectorielles", ch:[
+    {t:`SELECT ST_AsMVT(q, 'couche') FROM (\n  SELECT id, nom,\n    ST_AsMVTGeom(ST_Transform(geom,3857), ST_TileEnvelope(:z,:x,:y)) AS geom\n  FROM t\n  WHERE ST_Transform(geom,3857) && ST_TileEnvelope(:z,:x,:y)\n) q;`, n:"servir directement des tuiles à un client web"}
+  ]}
+]},
+
+/* 15 ----------------------------------------------------------------- */
+{t:"Import · export · visualisation", c:"#5E4B8B", ch:[
+  {t:"Shapefile", ch:[
+    {t:`shp2pgsql -s 2953 -I -D -W LATIN1 parcelle.shp vecteur.parcelle | psql -d gis`, n:"-s SRID · -I index GiST · -D format rapide · -W encodage"},
+    {t:`shp2pgsql -s 4326:2953 ...`, n:"lire en 4326 et charger reprojeté en 2953"},
+    {t:`shp2pgsql -a ...`, n:"-a ajouter · -d recréer · -p schéma seul · -n dbf seul"},
+    {t:`pgsql2shp -f sortie.shp -h host -u user gis "SELECT * FROM t"`}
+  ]},
+  {t:"GDAL / ogr2ogr — le couteau suisse", ch:[
+    {t:`ogr2ogr -f PostgreSQL PG:"dbname=gis user=moi" data.gpkg \\\n  -nln vecteur.t -lco GEOMETRY_NAME=geom -lco FID=id \\\n  -nlt PROMOTE_TO_MULTI -t_srs EPSG:2953 -overwrite`, n:"import universel : GPKG, SHP, GeoJSON, KML, DXF, FGDB…"},
+    {t:`ogr2ogr -f GPKG sortie.gpkg PG:"dbname=gis" -sql "SELECT * FROM t WHERE type='res'"`, n:"export d'une requête"},
+    {t:`ogr2ogr -f GeoJSON sortie.geojson PG:"dbname=gis" t -t_srs EPSG:4326`},
+    {t:`ogr2ogr ... -progress -skipfailures -gt 65536`, n:"-gt = taille des transactions : accélère beaucoup"},
+    {t:`ogrinfo -so data.gpkg`, n:"inspecter avant d'importer : couches, SRS, nb d'entités"},
+    {t:`ogr2ogr -f PostgreSQL PG:"..." points.csv -oo X_POSSIBLE_NAMES=lon -oo Y_POSSIBLE_NAMES=lat -a_srs EPSG:4326`, n:"CSV → points"}
+  ]},
+  {t:"Raster", ch:[
+    {t:`raster2pgsql -s 2953 -I -C -M -t 256x256 mnt.tif raster.mnt | psql -d gis`, n:"-t tuilage indispensable · -C contraintes · -I index"},
+    {t:`raster2pgsql -s 2953 -R -F -t 512x512 *.tif raster.ortho | psql -d gis`, n:"-R = raster hors base (référencé), -F ajoute le nom de fichier"},
+    {t:`gdal_translate PG:"dbname=gis schema=raster table=mnt" sortie.tif`}
+  ]},
+  {t:"Export SQL", ch:[
+    {t:`\\copy (SELECT id, nom, ST_AsText(geom) FROM t) TO 'export.csv' CSV HEADER`},
+    {t:`SELECT jsonb_build_object(\n  'type','FeatureCollection',\n  'features', jsonb_agg(jsonb_build_object(\n     'type','Feature',\n     'geometry', ST_AsGeoJSON(ST_Transform(geom,4326))::jsonb,\n     'properties', to_jsonb(t) - 'geom'))\n) FROM t;`, n:"GeoJSON complet en une requête"}
+  ]},
+  {t:"Clients & visualisation", ch:[
+    {t:`QGIS → Gestionnaire de sources → PostGIS`, n:"la connexion se retient ; « Afficher seulement les couches géométriques »"},
+    {t:`QGIS → DB Manager → « Charger comme nouvelle couche »`, n:"toute requête SQL devient une couche : préciser la clé primaire et la colonne géométrique"},
+    {t:`Vue matérialisée + index GiST`, n:"le bon patron pour afficher une analyse lourde dans QGIS"},
+    {t:`pgAdmin 4 · DBeaver · psql`},
+    {t:`QGIS → Traitement → « Exporter vers PostgreSQL »`}
+  ]}
+]},
+
+/* 16 ----------------------------------------------------------------- */
+{t:"Administration & maintenance", c:"#6B5A2E", ch:[
+  {t:"Sauvegarder / restaurer", ch:[
+    {t:`pg_dump -Fc -Z6 -d gis -f gis.dump`, n:"format custom compressé : le standard"},
+    {t:`pg_dump -Fc -d gis -n vecteur -t parcelle -f extrait.dump`, n:"un schéma / une table"},
+    {t:`pg_restore -d gis_new -j 4 gis.dump`, n:"-j = restauration parallèle"},
+    {t:`pg_restore -l gis.dump > liste.txt`, n:"restauration sélective avec -L"},
+    {t:`pg_dumpall -g > roles.sql`, n:"rôles et droits globaux — souvent oubliés"},
+    {t:`pg_dump ... --exclude-table-data='raster.*'`}
+  ]},
+  {t:"Entretien", ch:[
+    {t:`VACUUM (ANALYZE, VERBOSE) t;`, n:"après tout chargement ou suppression massive"},
+    {t:`VACUUM FULL t;`, n:"récupère l'espace disque mais VERROUILLE la table"},
+    {t:`ANALYZE t;`, n:"met à jour les statistiques du planificateur"},
+    {t:`REINDEX TABLE CONCURRENTLY t;`},
+    {t:`SELECT relname, n_dead_tup FROM pg_stat_user_tables ORDER BY 2 DESC;`, n:"lignes mortes = besoin de VACUUM"},
+    {t:`SELECT * FROM pg_stat_user_tables WHERE last_autovacuum IS NULL;`}
+  ]},
+  {t:"Surveiller", ch:[
+    {t:`SELECT pid, state, now()-query_start AS duree, query\nFROM pg_stat_activity WHERE state <> 'idle' ORDER BY 3 DESC;`},
+    {t:`SELECT pg_cancel_backend(pid);`, n:"annuler une requête (doux)"},
+    {t:`SELECT pg_terminate_backend(pid);`, n:"couper la connexion (brutal)"},
+    {t:`SELECT * FROM pg_locks WHERE NOT granted;`, n:"diagnostiquer un blocage"},
+    {t:`SELECT relname, pg_size_pretty(pg_total_relation_size(relid))\nFROM pg_catalog.pg_statio_user_tables ORDER BY pg_total_relation_size(relid) DESC;`}
+  ]},
+  {t:"Configuration", ch:[
+    {t:`SHOW work_mem;  SHOW shared_buffers;  SHOW data_directory;`},
+    {t:`ALTER SYSTEM SET work_mem = '128MB';`, n:"écrit dans postgresql.auto.conf"},
+    {t:`SELECT pg_reload_conf();`, n:"recharge sans redémarrer (pour les paramètres qui le permettent)"},
+    {t:`pg_hba.conf`, n:"qui peut se connecter, d'où, avec quelle méthode"},
+    {t:`log_min_duration_statement = 1000`, n:"journaliser les requêtes de plus d'une seconde"},
+    {t:`SELECT version();  SELECT current_user, current_database();`}
+  ]}
+]}
+
+];
+
+/* =======================================================================
+   RENDU
+   ======================================================================= */
+const map = document.getElementById('map');
+const wires = document.getElementById('wires');
+let leafCount = 0;
+
+function makeNode(node, depth, colour){
+  const sub = document.createElement('div');
+  sub.className = 'sub';
+  const hasCh = node.ch && node.ch.length;
+
+  const nd = document.createElement('div');
+  nd.className = 'node ' + (hasCh ? 'l' + depth : 'leaf');
+
+  if (hasCh){
+    const b = document.createElement('button');
+    b.type = 'button';
+    const car = document.createElement('span');
+    car.className = 'caret'; car.textContent = '▼';
+    const lab = document.createElement('span');
+    lab.className = 'lab'; lab.textContent = node.t;
+    b.append(car, lab);
+    b.addEventListener('click', () => { sub.classList.toggle('collapsed'); draw(); });
+    nd.appendChild(b);
+  } else {
+    leafCount++;
+    const code = document.createElement('code');
+    code.textContent = node.t;
+    nd.appendChild(code);
+    if (node.n){
+      const n = document.createElement('span');
+      n.className = 'note'; n.textContent = node.n;
+      nd.appendChild(n);
+    }
+    nd.title = 'Cliquer pour copier';
+    nd.addEventListener('click', () => copy(node.t, nd));
+  }
+  sub.appendChild(nd);
+
+  if (hasCh){
+    const kids = document.createElement('div');
+    kids.className = 'children';
+    node.ch.forEach(c => kids.appendChild(makeNode(c, depth + 1, colour)));
+    sub.appendChild(kids);
+  }
+  return sub;
+}
+
+/* racine + branches */
+const rootSub = document.createElement('div');
+rootSub.className = 'sub';
+const rootNode = document.createElement('div');
+rootNode.className = 'node root';
+rootNode.innerHTML = 'PostgreSQL<br>+ PostGIS<small>AIDE-MÉMOIRE SIG</small>';
+rootSub.appendChild(rootNode);
+const branchBox = document.createElement('div');
+branchBox.className = 'children';
+rootSub.appendChild(branchBox);
+
+const legend = document.getElementById('legend');
+DATA.forEach((br, i) => {
+  const sub = makeNode(br, 1, br.c);
+  sub.style.setProperty('--c', br.c);
+  sub.id = 'b' + i;
+  sub.dataset.branch = '1';
+  branchBox.appendChild(sub);
+
+  const chip = document.createElement('button');
+  chip.style.setProperty('--c', br.c);
+  chip.innerHTML = '<i></i>';
+  chip.appendChild(document.createTextNode(br.t));
+  chip.addEventListener('click', () => {
+    sub.classList.remove('collapsed');
+    draw();
+    sub.scrollIntoView({behavior:'smooth', block:'center', inline:'start'});
+  });
+  legend.appendChild(chip);
+});
+map.appendChild(rootSub);
+document.getElementById('count').textContent = leafCount + ' commandes · ' + DATA.length + ' branches';
+
+/* ---------- câbles SVG ---------- */
+function draw(){
+  if (window.innerWidth <= 900){ wires.innerHTML = ''; return; }
+  const box = map.getBoundingClientRect();
+  wires.setAttribute('width', map.scrollWidth);
+  wires.setAttribute('height', map.scrollHeight);
+  wires.setAttribute('viewBox', `0 0 ${map.scrollWidth} ${map.scrollHeight}`);
+  let d = '';
+  map.querySelectorAll('.children').forEach(kids => {
+    if (kids.offsetParent === null) return;
+    const parentNode = kids.previousElementSibling;
+    if (!parentNode || !parentNode.classList.contains('node')) return;
+    const a = parentNode.getBoundingClientRect();
+    const x1 = a.right - box.left, y1 = a.top - box.top + a.height / 2;
+    Array.from(kids.children).forEach(childSub => {
+      const cn = childSub.firstElementChild;
+      if (!cn || childSub.classList.contains('hidden')) return;
+      const b = cn.getBoundingClientRect();
+      const x2 = b.left - box.left - 2, y2 = b.top - box.top + Math.min(b.height / 2, 13);
+      const mx = x1 + (x2 - x1) * 0.55;
+      const depth = childSub.querySelector('.node').className.includes('l1') ? 1
+                  : childSub.querySelector('.node').className.includes('l2') ? 2 : 3;
+      const colour = getComputedStyle(childSub.closest('[data-branch]') || childSub).getPropertyValue('--c') || '#333';
+      const w = depth === 1 ? 2.6 : depth === 2 ? 1.8 : 1;
+      d += `<path d="M${x1},${y1} C${mx},${y1} ${x1 + (x2-x1)*0.45},${y2} ${x2},${y2}" stroke="${colour.trim()}" stroke-width="${w}" opacity="${depth===3?0.45:0.75}"/>`;
+    });
+  });
+  wires.innerHTML = d;
+}
+
+/* ---------- copie ---------- */
+const toast = document.getElementById('toast');
+function copy(txt, el){
+  const done = () => {
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 700);
+    toast.textContent = 'Copié';
+    toast.classList.add('on');
+    setTimeout(() => toast.classList.remove('on'), 1100);
+  };
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(done, fallback);
+  } else fallback();
+  function fallback(){
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e){}
+    ta.remove();
+  }
+}
+
+/* ---------- filtre ---------- */
+const q = document.getElementById('q');
+function clearMarks(el){
+  el.querySelectorAll('mark').forEach(m => { m.replaceWith(document.createTextNode(m.textContent)); });
+  el.normalize();
+}
+function filter(){
+  const term = q.value.trim().toLowerCase();
+  const all = map.querySelectorAll('.sub');
+  all.forEach(s => s.classList.remove('hidden'));
+  map.querySelectorAll('.node.leaf code, .node .lab').forEach(clearMarks);
+
+  if (!term){
+    resetState();
+    draw();
+    document.getElementById('count').textContent = leafCount + ' commandes · ' + DATA.length + ' branches';
+    return;
+  }
+
+  let hits = 0;
+  map.querySelectorAll('.node.leaf').forEach(leaf => {
+    const txt = leaf.textContent.toLowerCase();
+    const sub = leaf.parentElement;
+    if (txt.includes(term)){
+      hits++;
+      highlight(leaf.querySelector('code'), term);
+      let p = sub;
+      while (p && p !== map){
+        p.classList.remove('hidden','collapsed');
+        p = p.parentElement.closest('.sub');
+      }
+    } else {
+      sub.classList.add('hidden');
+    }
+  });
+  // masquer les sous-branches devenues vides
+  for (let pass = 0; pass < 4; pass++){
+    map.querySelectorAll('.sub').forEach(s => {
+      const kids = s.querySelector(':scope > .children');
+      if (!kids) return;
+      const visible = Array.from(kids.children).some(c => !c.classList.contains('hidden'));
+      if (!visible) s.classList.add('hidden');
+    });
+  }
+  rootSub.classList.remove('hidden');
+  document.getElementById('count').textContent = hits + ' résultat' + (hits > 1 ? 's' : '');
+  draw();
+}
+function highlight(el, term){
+  if (!el) return;
+  const txt = el.textContent, i = txt.toLowerCase().indexOf(term);
+  if (i < 0) return;
+  el.textContent = '';
+  el.append(
+    document.createTextNode(txt.slice(0, i)),
+    Object.assign(document.createElement('mark'), {textContent: txt.slice(i, i + term.length)}),
+    document.createTextNode(txt.slice(i + term.length))
+  );
+}
+let tmr;
+q.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(filter, 140); });
+document.getElementById('clr').addEventListener('click', () => { q.value = ''; filter(); q.focus(); });
+
+/* ---------- commandes ---------- */
+document.getElementById('expand').addEventListener('click', () => {
+  map.querySelectorAll('.sub').forEach(s => s.classList.remove('collapsed')); draw();
+});
+document.getElementById('collapse').addEventListener('click', () => { resetState(); draw(); });
+document.getElementById('print').addEventListener('click', () => {
+  map.querySelectorAll('.sub').forEach(s => s.classList.remove('collapsed'));
+  draw(); setTimeout(() => window.print(), 250);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== q){ e.preventDefault(); q.focus(); }
+  if (e.key === 'Escape' && document.activeElement === q){ q.value = ''; filter(); }
+});
+
+/* ---------- état initial : branches ouvertes, sous-branches repliées ---------- */
+function resetState(){
+  map.querySelectorAll('.sub').forEach(s => {
+    s.classList.remove('collapsed');
+    const n = s.firstElementChild;
+    if (n && n.classList.contains('l2')) s.classList.add('collapsed');
+  });
+}
+resetState();
+window.addEventListener('resize', () => { clearTimeout(tmr); tmr = setTimeout(draw, 120); });
+window.addEventListener('load', draw);
+draw();
+setTimeout(draw, 400);
+</script>
+</body>
+</html>
