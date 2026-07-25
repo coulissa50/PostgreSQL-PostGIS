@@ -176,6 +176,92 @@ kbd{font-family:"JetBrains Mono",monospace;font-size:11px;border:1px solid var(-
   main{padding:18px 14px 70px}
 }
 
+
+/* ---------- Bouton info & panneau de fiche ---------- */
+.node.l1, .node.l2{display:inline-flex;align-items:center;gap:7px}
+button.info{
+  flex:none;width:19px;height:19px;border-radius:50%;
+  border:1.2px solid var(--c);background:transparent;color:var(--c);
+  font-family:"Bricolage Grotesque",serif;font-weight:600;font-size:11px;line-height:1;
+  cursor:pointer;padding:0;opacity:.55;
+}
+button.info:hover{background:var(--c);color:var(--paper-2);opacity:1}
+button.info:focus-visible{outline:2px solid var(--amber);outline-offset:2px;opacity:1}
+button.tool.primary{background:var(--ink);color:var(--paper)}
+button.tool.primary:hover{background:var(--amber);border-color:var(--amber)}
+
+#fiche{
+  position:fixed;top:0;right:0;z-index:70;
+  width:min(470px,100vw);height:100vh;
+  background:var(--paper-2);border-left:2px solid var(--ink);
+  box-shadow:-12px 0 34px rgba(15,26,32,.14);
+  transform:translateX(103%);transition:transform .22s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+#fiche.on{transform:none}
+#fiche header{
+  border-bottom:1.5px solid var(--ink);border-top:6px solid var(--c,#2E3A46);
+  padding:13px 16px 11px;display:flex;align-items:flex-start;gap:10px;flex:none;
+}
+#fiche h2{
+  font-family:"Bricolage Grotesque",serif;font-weight:600;font-size:17px;
+  margin:0;letter-spacing:-.01em;line-height:1.2;
+}
+#fiche .kind{
+  display:block;font-family:"JetBrains Mono",monospace;font-size:10px;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--c,#555);margin-bottom:4px;
+}
+#fiche .close{
+  margin-left:auto;flex:none;border:1.5px solid var(--ink);background:transparent;
+  cursor:pointer;font-size:16px;line-height:1;padding:3px 8px;color:var(--ink);
+}
+#fiche .close:hover{background:var(--ink);color:var(--paper)}
+#fiche .body{overflow-y:auto;padding:16px;flex:1}
+#fiche h3{
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:11px;font-weight:600;
+  letter-spacing:.15em;text-transform:uppercase;color:var(--ink-2);
+  margin:20px 0 7px;padding-bottom:4px;border-bottom:1px solid var(--rule);
+}
+#fiche h3:first-child{margin-top:0}
+#fiche p{margin:0 0 9px;font-size:14.5px;line-height:1.5}
+#fiche ul{margin:0;padding-left:17px}
+#fiche li{font-size:14px;line-height:1.5;margin-bottom:7px}
+#fiche pre{
+  margin:0;background:var(--paper);border:1px solid var(--rule);border-left:3px solid var(--c,#333);
+  padding:11px 12px;overflow-x:auto;
+  font-family:"JetBrains Mono",monospace;font-size:12.2px;line-height:1.5;white-space:pre;
+}
+#fiche .excopy{
+  margin-top:6px;border:1px solid var(--rule);background:transparent;cursor:pointer;
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:12px;color:var(--ink-2);padding:4px 9px;
+}
+#fiche .excopy:hover{border-color:var(--ink);color:var(--ink)}
+#fiche .piege{
+  background:rgba(176,114,0,.11);border-left:3px solid var(--amber);
+  padding:10px 12px;font-size:14px;line-height:1.5;
+}
+#fiche .liens a{
+  display:block;color:var(--ink);font-size:13.5px;padding:5px 0;
+  border-bottom:1px dotted var(--rule);text-decoration:none;
+}
+#fiche .liens a:hover{color:var(--amber)}
+#fiche .liens a::after{content:" ↗";font-size:11px;color:var(--ink-3)}
+#fiche .voir{display:flex;flex-wrap:wrap;gap:5px}
+#fiche .voir button{
+  border:1px solid var(--rule);background:var(--paper);cursor:pointer;
+  font-family:"IBM Plex Sans Condensed",sans-serif;font-size:12.5px;color:var(--ink);padding:4px 9px;
+}
+#fiche .voir button:hover{border-color:var(--amber);background:rgba(176,114,0,.1)}
+#fiche code{font-family:"JetBrains Mono",monospace;font-size:12.5px;background:var(--paper);padding:0 3px}
+.node.flash > button{outline:2.5px solid var(--amber);outline-offset:3px}
+
+@media (max-width:900px){
+  #fiche{width:100vw;height:88vh;top:auto;bottom:0;border-left:0;border-top:2px solid var(--ink);
+         transform:translateY(103%)}
+  #fiche.on{transform:none}
+}
+@media print{#fiche{display:none}}
+
 @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
 
 @media print{
@@ -205,6 +291,8 @@ kbd{font-family:"JetBrains Mono",monospace;font-size:11px;border:1px solid var(-
         <input id="q" type="search" placeholder="Filtrer : ST_Buffer, index, jointure, ogr2ogr…" autocomplete="off" spellcheck="false">
         <button class="clr" id="clr" title="Effacer" aria-label="Effacer le filtre">×</button>
       </div>
+      <button class="tool primary" id="guide">Parcours débutant</button>
+      <button class="tool" id="aide">Mode d'emploi</button>
       <button class="tool" id="expand">Tout déplier</button>
       <button class="tool" id="collapse">Vue d'ensemble</button>
       <button class="tool" id="print">Imprimer</button>
@@ -224,13 +312,1039 @@ kbd{font-family:"JetBrains Mono",monospace;font-size:11px;border:1px solid var(-
 <footer>
   <div><b>Lire la carte</b><br>Racine → branche → sous-branche → commande. Cliquer un titre plie/déplie.</div>
   <div><b>Copier</b><br>Un clic sur une ligne de code la met dans le presse-papiers.</div>
+  <div><b>Comprendre</b><br>Le bouton <b>ⓘ</b> près d'un titre ouvre une fiche : explication, exemple exécutable, piège, doc.</div>
   <div><b>Chercher</b><br><kbd>/</kbd> place le curseur dans le filtre ; <kbd>Échap</kbd> l'efface.</div>
   <div><b>Conventions</b><br><code style="font-family:'JetBrains Mono',monospace">geom</code> = colonne géométrique, <code style="font-family:'JetBrains Mono',monospace">t</code> = table, SRID d'exemple 4326 / 2953.</div>
 </footer>
 
+
+<aside id="fiche" aria-hidden="true" aria-label="Fiche explicative">
+  <header>
+    <div><span class="kind" id="fiche-kind"></span><h2 id="fiche-titre"></h2></div>
+    <button class="close" id="fiche-close" aria-label="Fermer la fiche">×</button>
+  </header>
+  <div class="body" id="fiche-body"></div>
+</aside>
+
 <div id="toast">Copié</div>
 
 <script>
+/* =======================================================================
+   FICHES PÉDAGOGIQUES
+   q = à quoi ça sert · ex = exemple concret exécutable · p = piège
+   doc = [[url, libellé]…] · see = renvois internes dans la carte
+   ======================================================================= */
+const PG = 'https://docs.postgresql.fr/18/';
+const GIS = 'https://postgis.net/docs/';
+const ATELIER = ['https://postgis.net/workshops/fr/postgis-intro/', 'Atelier PostGIS en français (exercices guidés)'];
+
+const FICHES = {
+
+/* ---------- méta ---------- */
+"__UI":{
+  ti:"Mode d'emploi de la carte",
+  q:"La carte se lit de gauche à droite : la racine porte 16 branches (les grands domaines), chaque branche porte des sous-branches (les tâches), et chaque sous-branche porte les commandes réelles à copier. Rien à apprendre par cœur : on ouvre la branche qui correspond au besoin du moment.",
+  li:[
+    "<b>Cliquer un titre</b> déplie ou replie sa partie de l'arbre.",
+    "<b>Le bouton ⓘ</b> à côté d'un titre ouvre cette fiche : explication, exemple concret, piège fréquent, lien vers la doc.",
+    "<b>Cliquer une ligne de code</b> la copie dans le presse-papiers.",
+    "<b>Le filtre</b> cherche dans les 330 commandes à la fois (essayez « buffer », « index », « jointure », « ogr2ogr ») et masque tout le reste.",
+    "<b>Vue d'ensemble</b> remet la carte dans son état de départ ; <b>Tout déplier</b> ouvre tout ; <b>Imprimer</b> déplie tout et met en page pour un PDF.",
+    "<b>Couleurs</b> : chaque branche a la sienne, on la retrouve dans la légende en haut, qui sert aussi de menu de navigation.",
+    "<b>Clavier</b> : <kbd>/</kbd> pour aller au filtre, <kbd>Échap</kbd> pour l'effacer."
+  ],
+  ex:`-- Comment travailler avec la carte au quotidien :
+-- 1. j'ai un besoin  →  je tape un mot-clé dans le filtre
+-- 2. je lis la note en italique sous la commande
+-- 3. j'ouvre la fiche ⓘ de la sous-branche si le contexte manque
+-- 4. je clique la ligne pour la copier dans psql, pgAdmin ou QGIS`,
+  p:"Si vous débutez complètement, ouvrez d'abord la fiche « Parcours débutant » (bouton en haut) : elle enchaîne les 8 premières étapes, de l'installation à votre première analyse spatiale."
+},
+
+"__PARCOURS":{
+  ti:"Parcours débutant — de zéro à la première analyse spatiale",
+  q:"Huit étapes dans l'ordre. Chacune renvoie à une branche de la carte. Comptez une à deux heures pour tout dérouler, avec un jeu de données à vous ou celui de l'atelier PostGIS.",
+  li:[
+    "<b>1. Installer</b> — PostgreSQL + PostGIS. Sous Windows, l'installateur EDB et son Stack Builder installent les deux ; sous Ubuntu : <code>sudo apt install postgresql postgis</code>.",
+    "<b>2. Se connecter</b> — <code>psql -U postgres</code>, puis vérifier avec <code>\\l</code>. → branche <i>psql & connexion</i>",
+    "<b>3. Créer la base et activer PostGIS</b> — une base par projet. → branche <i>Bases, schémas, droits</i>",
+    "<b>4. Charger des données</b> — le plus simple : glisser un GeoPackage avec ogr2ogr, ou un Shapefile avec shp2pgsql. → branche <i>Import · export</i>",
+    "<b>5. Regarder ce qu'on a</b> — <code>\\d ma_table</code>, comptage, SRID, validité. → branches <i>psql</i> et <i>PostGIS — mesurer & inspecter</i>",
+    "<b>6. Créer l'index spatial</b> — la seule ligne qui change tout en performance. → branche <i>Index & performance</i>",
+    "<b>7. Première requête spatiale</b> — une jointure spatiale, puis un tampon. → branches <i>relations spatiales</i> et <i>Recettes géomatiques</i>",
+    "<b>8. Voir le résultat</b> — ouvrir la table (ou la vue) dans QGIS. → branche <i>Import · export · visualisation</i>"
+  ],
+  ex:`-- Le script complet des étapes 3 à 7, à coller tel quel dans psql.
+
+-- 3. base + extension
+CREATE DATABASE gis;
+\\c gis
+CREATE EXTENSION postgis;
+SELECT postgis_full_version();
+
+-- 4. import (dans un terminal, pas dans psql)
+-- ogr2ogr -f PostgreSQL PG:"dbname=gis" communes.gpkg \\
+--   -nln commune -lco GEOMETRY_NAME=geom -nlt PROMOTE_TO_MULTI -t_srs EPSG:2953
+
+-- 5. inspection
+\\d commune
+SELECT count(*), ST_SRID(geom), GeometryType(geom)
+FROM commune GROUP BY 2,3;
+
+-- 6. index spatial + statistiques
+CREATE INDEX idx_commune_geom ON commune USING GIST (geom);
+VACUUM ANALYZE commune;
+
+-- 7. première analyse : nombre d'écoles par commune
+SELECT c.nom, count(e.*) AS nb_ecoles
+FROM commune c
+LEFT JOIN ecole e ON ST_Intersects(c.geom, e.geom)
+GROUP BY c.nom
+ORDER BY nb_ecoles DESC;`,
+  p:"Erreur numéro un du débutant : oublier l'étape 6. Sans index spatial, une jointure sur 10 000 objets peut passer de 0,2 s à plusieurs minutes.",
+  doc:[ATELIER, ['https://docs.postgresql.fr/18/tutorial.html','Tutoriel PostgreSQL (fr)']]
+},
+
+/* ---------- 1. psql ---------- */
+"psql & connexion":{
+  q:"psql est le terminal SQL livré avec PostgreSQL. C'est l'outil le plus rapide pour se connecter, inspecter une base et lancer des scripts — et le seul disponible partout, y compris sur un serveur distant. pgAdmin ou DBeaver font la même chose avec des fenêtres, mais psql reste la référence dans toute la documentation.",
+  ex:`psql -h localhost -U postgres -d gis
+
+-- une fois dedans :
+\\l              -- quelles bases existent ?
+\\c gis          -- je me connecte à gis
+\\dt             -- quelles tables ?
+\\d commune      -- à quoi ressemble cette table ?
+\\q              -- je sors`,
+  p:"Les méta-commandes commencent par une contre-oblique et ne prennent PAS de point-virgule. Les vraies requêtes SQL, elles, en exigent un : sans le « ; », psql attend la suite et affiche « gis-# ».",
+  doc:[[PG+'app-psql.html','Référence psql (fr)']]
+},
+"Se connecter":{
+  q:"Quatre façons de dire à psql où aller. En pratique on configure une fois pour toutes le fichier .pgpass (ou les variables PG*) et on ne tape plus jamais son mot de passe.",
+  ex:`# ~/.pgpass  (Linux/macOS)  ou  %APPDATA%\\postgresql\\pgpass.conf (Windows)
+localhost:5432:gis:moi:monMotDePasse
+
+chmod 600 ~/.pgpass     # sinon PostgreSQL ignore le fichier
+psql -h localhost -U moi -d gis    # plus de mot de passe demandé`,
+  p:"Si la connexion échoue avec « no pg_hba.conf entry », le problème n'est pas le mot de passe mais le fichier pg_hba.conf du serveur, qui décide qui a le droit de se connecter et d'où."
+},
+"Explorer (méta-commandes)":{
+  q:"Le réflexe avant toute requête : savoir ce que contient la base. Ces commandes remplacent la navigation dans l'arborescence de pgAdmin.",
+  ex:`\\dt vecteur.*        -- tables du schéma vecteur
+\\d+ vecteur.parcelle -- colonnes, types, index, taille
+\\dx                  -- extensions installées (postgis est-il là ?)
+\\df *ST_Buff*        -- toutes les fonctions dont le nom contient ST_Buff`,
+  p:"\\dt ne montre que les schémas du search_path. Si « aucune relation trouvée » alors que la table existe, précisez le schéma : \\dt vecteur.*"
+},
+"Confort & sortie":{
+  q:"Réglages qui rendent psql utilisable au quotidien, en particulier avec des géométries : un polygone affiché en entier détruit la lisibilité du terminal.",
+  ex:`\\x auto          -- affichage en colonnes quand la ligne est trop large
+\\timing on       -- durée de chaque requête, utile pour comparer deux écritures
+SELECT id, ST_AsText(ST_Centroid(geom)) FROM commune LIMIT 3;`,
+  p:"Ne faites jamais SELECT * sur une table spatiale sans limite : psql tente d'afficher la géométrie complète en hexadécimal. Sélectionnez les colonnes utiles, ou ST_AsText(ST_Centroid(geom))."
+},
+"En ligne de commande":{
+  q:"psql peut aussi s'utiliser sans mode interactif : c'est ainsi qu'on automatise un traitement (script nocturne, chaîne de production, tâche planifiée).",
+  ex:`psql -d gis -v ON_ERROR_STOP=1 -f traitement.sql
+psql -d gis -At -F';' -c "SELECT nom, ST_Area(geom) FROM commune" > surfaces.csv`,
+  p:"Sans ON_ERROR_STOP=1, un script qui échoue à la ligne 3 continue quand même les 200 lignes suivantes et laisse la base à moitié traitée."
+},
+
+/* ---------- 2. bases ---------- */
+"Bases, schémas, droits":{
+  q:"Une base = un projet ou un périmètre de données. À l'intérieur, les schémas sont des dossiers qui rangent les tables, et les rôles décident qui voit quoi. Prendre 10 minutes pour poser cette structure au départ évite un chantier de reprise plus tard.",
+  ex:`CREATE DATABASE gis;
+\\c gis
+CREATE EXTENSION postgis;
+
+CREATE SCHEMA reference;  -- données officielles, en lecture seule
+CREATE SCHEMA travail;    -- vos analyses, jetables
+SET search_path TO travail, reference, public;`,
+  p:"PostGIS s'active par base, jamais globalement : chaque nouvelle base a besoin de son propre CREATE EXTENSION postgis.",
+  doc:[[PG+'managing-databases.html','Administration des bases (fr)'],[PG+'ddl-schemas.html','Schémas (fr)']]
+},
+"Base de données":{
+  q:"Créer, supprimer, mesurer une base. TEMPLATE template0 garantit un encodage propre ; TEMPLATE une_base_existante clone une base entière en quelques secondes — pratique pour tester une migration sans risque.",
+  ex:`CREATE DATABASE gis TEMPLATE template0 ENCODING 'UTF8';
+SELECT pg_size_pretty(pg_database_size('gis'));`,
+  p:"Impossible de supprimer ou cloner une base si quelqu'un y est connecté — y compris vous-même : basculez sur une autre base avant (\\c postgres)."
+},
+"Extensions":{
+  q:"Une extension ajoute des types et des fonctions à PostgreSQL. PostGIS en est une : c'est elle qui apporte le type geometry et les centaines de fonctions ST_*. Les autres s'ajoutent selon les besoins (routage, recherche floue, rasters).",
+  ex:`CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_raster;   -- si vous manipulez des MNT, orthos
+SELECT postgis_full_version();     -- versions de GEOS, PROJ, GDAL`,
+  p:"Une fonction « n'existe pas » ? Vérifiez d'abord la version : ST_HexagonGrid demande PostGIS 3.1, ST_Point(x,y,srid) demande 3.2. postgis_full_version() donne la réponse en une ligne.",
+  doc:[[GIS+'postgis_installation.html','Installation PostGIS']]
+},
+"Schémas":{
+  q:"Un schéma est un dossier à l'intérieur de la base. La convention qui marche en géomatique : un schéma pour les données de référence (intouchables), un pour les données de production, un pour les brouillons qu'on peut supprimer d'un bloc.",
+  ex:`CREATE SCHEMA reference;
+ALTER TABLE commune SET SCHEMA reference;
+SET search_path TO travail, reference, public;
+DROP SCHEMA travail CASCADE;   -- on jette tous les brouillons d'un coup`,
+  p:"Le search_path défini par SET ne dure que la session. Pour qu'il tienne, utilisez ALTER DATABASE ... SET search_path = ... ou ALTER ROLE ... SET search_path = ..."
+},
+"Rôles & privilèges":{
+  q:"Un rôle est un utilisateur ou un groupe. La bonne pratique : créer un rôle de groupe par métier (geomatique, consultation), lui donner les droits, puis rattacher les personnes au groupe.",
+  ex:`CREATE ROLE consultation NOLOGIN;
+GRANT USAGE ON SCHEMA reference TO consultation;
+GRANT SELECT ON ALL TABLES IN SCHEMA reference TO consultation;
+ALTER DEFAULT PRIVILEGES IN SCHEMA reference
+  GRANT SELECT ON TABLES TO consultation;   -- vaut aussi pour les futures tables
+
+CREATE ROLE marie LOGIN PASSWORD 'x';
+GRANT consultation TO marie;`,
+  p:"GRANT ... ON ALL TABLES ne concerne que les tables existant à cet instant. Sans la ligne ALTER DEFAULT PRIVILEGES, toute table créée demain sera invisible pour le groupe.",
+  doc:[[PG+'user-manag.html','Rôles (fr)'],[PG+'sql-grant.html','GRANT (fr)']]
+},
+
+/* ---------- 3. tables ---------- */
+"Tables & types":{
+  q:"La table est le contenant : des colonnes typées, des contraintes qui refusent les données aberrantes, et — en géomatique — une colonne geometry. Un typage strict dès la création est le meilleur investissement qualité qui soit : la base refuse les erreurs au lieu de les stocker.",
+  ex:`CREATE TABLE releve (
+  id     bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  code   text NOT NULL UNIQUE,
+  date_r date NOT NULL DEFAULT current_date,
+  type   text CHECK (type IN ('sol','eau','air')),
+  geom   geometry(Point, 2953)
+);
+CREATE INDEX ON releve USING GIST (geom);`,
+  p:"geometry tout court accepte n'importe quoi : des points, des polygones, des SRID mélangés. geometry(Point, 2953) refuse tout le reste — c'est le typage à privilégier.",
+  doc:[[PG+'ddl.html','Définition des données (fr)'],[PG+'datatype.html','Types de données (fr)']]
+},
+"Créer":{
+  q:"Quatre façons de créer une table : à la main, à partir d'une requête (CTAS), temporaire, ou en copiant la structure d'une autre.",
+  ex:`-- matérialiser un résultat d'analyse dans une vraie table
+CREATE TABLE travail.zone_risque AS
+SELECT id, nom, ST_Buffer(geom, 500) AS geom
+FROM cours_eau
+WHERE type = 'permanent';
+
+CREATE INDEX ON travail.zone_risque USING GIST (geom);`,
+  p:"CTAS ne recopie ni les index, ni les contraintes, ni la clé primaire : après un CREATE TABLE AS, il faut recréer l'index spatial à la main, sinon la nouvelle table sera lente."
+},
+"Types courants":{
+  q:"Choisir le bon type, c'est laisser la base valider à votre place. text pour du texte (sans limite arbitraire), numeric pour des valeurs exactes, double precision pour du calcul, timestamptz pour toute date-heure, geometry pour la géométrie.",
+  ex:`SELECT '2026-07-24'::date + interval '10 days';
+SELECT 'POINT(300000 7400000)'::geometry;
+SELECT '{"source":"levé GPS"}'::jsonb ->> 'source';`,
+  p:"varchar(20) ne rend rien plus rapide dans PostgreSQL : c'est juste une contrainte de longueur, et elle se retourne contre vous le jour où une valeur fait 21 caractères. Préférez text, avec un CHECK si une limite est vraiment nécessaire."
+},
+"Contraintes":{
+  q:"Les contraintes sont votre contrôle qualité permanent : la base refuse la donnée non conforme au moment de l'écriture, plutôt que de vous laisser la découvrir six mois plus tard dans une carte.",
+  ex:`ALTER TABLE parcelle
+  ADD CONSTRAINT geom_valide CHECK (ST_IsValid(geom)),
+  ADD CONSTRAINT srid_ok     CHECK (ST_SRID(geom) = 2953),
+  ADD CONSTRAINT surf_positive CHECK (surf > 0);`,
+  p:"Ajouter une contrainte sur une table déjà remplie échoue si une seule ligne existante la viole. Lancez d'abord le SELECT correspondant pour repérer et corriger les fautives.",
+  doc:[[PG+'ddl-constraints.html','Contraintes (fr)']]
+},
+"Modifier":{
+  q:"Faire évoluer une table sans la recréer. USING est la clé des changements de type : c'est l'expression qui convertit l'ancienne valeur en nouvelle.",
+  ex:`ALTER TABLE parcelle ADD COLUMN densite numeric;
+ALTER TABLE parcelle ALTER COLUMN code TYPE integer USING code::integer;
+
+-- reprojeter toute une couche en place
+ALTER TABLE parcelle ALTER COLUMN geom
+  TYPE geometry(MultiPolygon, 2953) USING ST_Transform(geom, 2953);`,
+  p:"ALTER TABLE prend un verrou exclusif : sur une table volumineuse et utilisée, cela bloque tout le monde le temps de l'opération. À faire hors des heures de production."
+},
+"Vues":{
+  q:"Une vue est une requête enregistrée qu'on interroge comme une table : parfaite pour publier une analyse dans QGIS sans dupliquer les données. La vue matérialisée, elle, stocke le résultat : rapide à afficher, mais à rafraîchir quand la source change.",
+  ex:`CREATE MATERIALIZED VIEW mv_densite AS
+SELECT c.id, c.nom, c.geom, count(e.*) AS nb
+FROM commune c LEFT JOIN ecole e ON ST_Intersects(c.geom, e.geom)
+GROUP BY c.id, c.nom, c.geom;
+
+CREATE UNIQUE INDEX ON mv_densite (id);        -- exigé par CONCURRENTLY
+CREATE INDEX ON mv_densite USING GIST (geom);  -- pour l'affichage QGIS
+REFRESH MATERIALIZED VIEW CONCURRENTLY mv_densite;`,
+  p:"Une vue matérialisée ne se met jamais à jour toute seule. Si la carte affiche des chiffres périmés, c'est le REFRESH qu'on a oublié.",
+  doc:[[PG+'sql-creatematerializedview.html','Vues matérialisées (fr)']],
+  see:["Index spatial — le réflexe n°1","Clients & visualisation"]
+},
+
+/* ---------- 4. données ---------- */
+"Données : insérer, modifier, charger":{
+  q:"Le quotidien : faire entrer des données, les corriger, les recharger sans créer de doublons. En géomatique, l'essentiel du volume arrive par import de fichiers (branche Import · export) ; cette branche couvre tout le reste, notamment les mises à jour et le chargement de CSV.",
+  ex:`-- charger un CSV de points depuis votre poste
+CREATE TABLE brut (nom text, lon double precision, lat double precision);
+\\copy brut FROM 'points.csv' WITH (FORMAT csv, HEADER true)
+
+ALTER TABLE brut ADD COLUMN geom geometry(Point, 4326);
+UPDATE brut SET geom = ST_SetSRID(ST_MakePoint(lon, lat), 4326);
+CREATE INDEX ON brut USING GIST (geom);`,
+  p:"ST_MakePoint attend X puis Y, c'est-à-dire longitude puis latitude. L'inversion est l'erreur la plus fréquente : vos points se retrouvent dans l'océan Indien.",
+  doc:[[PG+'dml.html','Manipulation des données (fr)']]
+},
+"Insérer":{
+  q:"Ajouter des lignes une par une, ou par lots depuis une autre table. ON CONFLICT (l'« UPSERT ») résout le cas classique du rechargement mensuel : mettre à jour ce qui existe, insérer ce qui est nouveau, en une seule requête.",
+  ex:`INSERT INTO parcelle (code, surf, geom)
+SELECT code, ST_Area(geom), geom FROM import_mensuel
+ON CONFLICT (code) DO UPDATE
+  SET surf = EXCLUDED.surf, geom = EXCLUDED.geom, maj = now();`,
+  p:"ON CONFLICT exige une contrainte UNIQUE ou PRIMARY KEY sur la colonne visée : sans elle, PostgreSQL renvoie une erreur."
+},
+"Modifier & supprimer":{
+  q:"UPDATE ... FROM est le couteau suisse du géomaticien : il permet de renseigner un attribut à partir d'une autre table, y compris par une relation spatiale.",
+  ex:`-- attribuer à chaque point le nom de la commune qui le contient
+UPDATE releve r
+SET commune = c.nom
+FROM commune c
+WHERE ST_Within(r.geom, c.geom);`,
+  p:"Testez toujours un UPDATE massif dans une transaction ouverte : BEGIN; puis l'UPDATE, vérifiez le nombre de lignes touchées, et seulement ensuite COMMIT; (ou ROLLBACK; si le compte est faux)."
+},
+"Charger du CSV":{
+  q:"COPY est le chargeur le plus rapide de PostgreSQL. Retenez la différence : COPY lit un fichier situé sur le serveur (droits requis), \\copy lit un fichier situé sur votre poste — c'est presque toujours celui-là qu'il vous faut.",
+  ex:`\\copy releve FROM 'releves_2026.csv' WITH (FORMAT csv, HEADER true, DELIMITER ';', ENCODING 'LATIN1')
+
+-- et dans l'autre sens
+\\copy (SELECT nom, ST_X(geom), ST_Y(geom) FROM releve) TO 'export.csv' CSV HEADER`,
+  p:"Accents en charabia ? C'est l'encodage : les exports Excel français sont souvent en LATIN1 (ou WIN1252), pas en UTF-8. Précisez ENCODING dans la commande.",
+  doc:[[PG+'sql-copy.html','COPY (fr)']]
+},
+"Transactions":{
+  q:"Une transaction regroupe plusieurs commandes en un tout : soit elles réussissent toutes, soit rien n'est appliqué. C'est le filet de sécurité indispensable avant toute opération de masse.",
+  ex:`BEGIN;
+DELETE FROM parcelle WHERE surf < 1;
+-- 42 lignes supprimées : est-ce le compte attendu ?
+SELECT count(*) FROM parcelle;
+ROLLBACK;   -- non → j'annule tout.  Oui → COMMIT;`,
+  p:"Une transaction laissée ouverte garde des verrous et bloque les autres utilisateurs, en plus d'empêcher l'autovacuum. Ne partez jamais dîner sur un BEGIN;",
+  doc:[[PG+'tutorial-transactions.html','Transactions (fr)']]
+},
+"Nettoyer & valider":{
+  q:"Le travail invisible qui fait la moitié d'un projet SIG : harmoniser des libellés, éliminer des doublons, remplacer les valeurs sentinelles, réparer les géométries.",
+  ex:`-- doublons d'identifiant
+SELECT code, count(*) FROM parcelle GROUP BY code HAVING count(*) > 1;
+
+-- valeurs sentinelles → NULL, espaces parasites
+UPDATE releve SET altitude = nullif(altitude, -9999),
+                  nom = btrim(regexp_replace(nom, '\\s+', ' ', 'g'));
+
+-- géométries cassées
+UPDATE parcelle SET geom = ST_MakeValid(geom) WHERE NOT ST_IsValid(geom);`,
+  see:["Contrôle qualité d'une livraison","Valider"]
+},
+
+/* ---------- 5. select ---------- */
+"Interroger : SELECT":{
+  q:"La commande que vous écrirez le plus souvent. Elle se lit dans l'ordre : d'où (FROM), quoi garder (WHERE), quoi afficher (SELECT), dans quel ordre (ORDER BY), combien (LIMIT). Tout le reste — jointures, agrégats, fonctions spatiales — vient s'y greffer.",
+  ex:`SELECT nom,
+       round(ST_Area(geom)::numeric / 10000, 1) AS hectares
+FROM parcelle
+WHERE type = 'agricole'
+  AND ST_Area(geom) > 5000
+ORDER BY hectares DESC
+LIMIT 10;`,
+  p:"Sur une table spatiale, prenez l'habitude de mettre LIMIT pendant vos essais : une requête d'exploration lancée sans limite sur 2 millions de géométries occupe le serveur pour rien.",
+  doc:[[PG+'queries.html','Requêtes (fr)'],[PG+'sql-select.html','SELECT (fr)']]
+},
+"Structure":{
+  q:"L'ossature d'une requête, plus DISTINCT ON — une spécificité PostgreSQL très pratique : garder une seule ligne par groupe, celle qu'on choisit.",
+  ex:`-- la plus grande parcelle de chaque commune, en une requête
+SELECT DISTINCT ON (commune) commune, code, surf
+FROM parcelle
+ORDER BY commune, surf DESC;`,
+  p:"Avec DISTINCT ON, les colonnes de ORDER BY doivent commencer par celles du DISTINCT ON, sinon PostgreSQL refuse la requête."
+},
+"Filtrer":{
+  q:"Restreindre les lignes. ILIKE ignore la casse, ~ accepte les expressions régulières, et les comparaisons de dates s'écrivent avec des intervalles lisibles.",
+  ex:`SELECT * FROM route
+WHERE nom ILIKE '%rivière%'
+  AND type IN ('collectrice','artérielle')
+  AND maj >= now() - interval '90 days';`,
+  p:"NULL n'est jamais égal à quoi que ce soit, pas même à NULL. « WHERE type <> 'res' » exclut aussi les lignes où type est NULL : ajoutez « OR type IS NULL » si vous les voulez."
+},
+"Calculer dans le SELECT":{
+  q:"Le SELECT n'affiche pas seulement des colonnes : il calcule. C'est là qu'on convertit des surfaces, qu'on classe en catégories, qu'on compose des étiquettes de carte.",
+  ex:`SELECT code,
+       ST_Area(geom) AS m2,
+       round((ST_Area(geom)/10000)::numeric, 2) AS ha,
+       CASE WHEN ST_Area(geom) > 100000 THEN 'grande'
+            WHEN ST_Area(geom) > 10000  THEN 'moyenne'
+            ELSE 'petite' END AS classe
+FROM parcelle;`,
+  p:"round(x, 2) n'existe que pour numeric. Sur un résultat de ST_Area (double precision), il faut transtyper : round(ST_Area(geom)::numeric, 2)."
+},
+
+/* ---------- 6. agrégats ---------- */
+"Agréger & fenêtrer":{
+  q:"Passer du détail à la synthèse : combien, quelle somme, quelle moyenne, par quoi. Les agrégats réduisent plusieurs lignes à une seule ; les fonctions fenêtre calculent la même chose tout en gardant le détail ligne à ligne — c'est ce qui permet un classement ou une part du total.",
+  ex:`-- synthèse par commune
+SELECT commune,
+       count(*)                        AS nb,
+       round(sum(surf)::numeric/10000,1) AS ha_total,
+       count(*) FILTER (WHERE type='agricole') AS nb_agricole
+FROM parcelle
+GROUP BY commune
+HAVING count(*) > 5
+ORDER BY ha_total DESC;`,
+  p:"Toute colonne du SELECT qui n'est pas dans une fonction d'agrégat doit figurer dans le GROUP BY — c'est le message d'erreur le plus fréquent quand on démarre.",
+  doc:[[PG+'functions-aggregate.html','Fonctions d\'agrégat (fr)'],[PG+'tutorial-window.html','Fonctions fenêtre (fr)']]
+},
+"Agrégats":{
+  q:"Les fonctions qui résument une colonne. FILTER permet un compte conditionnel sans écrire de CASE, et string_agg produit une liste lisible — très utile pour une fiche ou une étiquette.",
+  ex:`SELECT commune,
+       count(*) AS nb,
+       string_agg(DISTINCT type, ', ' ORDER BY type) AS types_presents,
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY surf) AS surf_mediane
+FROM parcelle GROUP BY commune;`,
+  p:"avg() ignore les NULL alors que count(*) les compte : une moyenne peut donc porter sur moins de lignes que le compte affiché à côté."
+},
+"Regrouper":{
+  q:"GROUP BY définit les paquets, HAVING filtre les paquets. La différence avec WHERE : WHERE s'applique avant le regroupement (sur les lignes), HAVING après (sur les résultats agrégés).",
+  ex:`SELECT type, count(*) AS nb
+FROM parcelle
+WHERE maj > '2026-01-01'   -- filtre les lignes
+GROUP BY type
+HAVING count(*) > 100;     -- filtre les groupes`
+},
+"Fonctions fenêtre":{
+  q:"Elles calculent sur un groupe sans écraser le détail. Le motif à connaître : row_number() pour numéroter dans chaque groupe, puis filtrer sur ce numéro pour obtenir un « top N par catégorie ».",
+  ex:`-- les 3 plus grandes parcelles de chaque commune
+SELECT * FROM (
+  SELECT code, commune, surf,
+         row_number() OVER (PARTITION BY commune ORDER BY surf DESC) AS rang
+  FROM parcelle
+) t WHERE rang <= 3;`,
+  p:"On ne peut pas filtrer directement sur une fonction fenêtre dans le WHERE : il faut l'envelopper dans une sous-requête ou une CTE, comme ci-dessus."
+},
+
+/* ---------- 7. jointures ---------- */
+"Jointures & requêtes avancées":{
+  q:"Croiser plusieurs tables. En SIG, la jointure a deux formes : par attribut (a.code = b.code, comme dans Excel) et par géométrie (ST_Intersects(a.geom, b.geom)) — la seconde est ce qui fait la valeur d'une base spatiale. Les CTE (WITH) servent à découper une analyse en étapes lisibles.",
+  ex:`WITH zone_500 AS (
+  SELECT ST_Union(ST_Buffer(geom, 500)) AS geom FROM ecole
+)
+SELECT b.id, b.usage
+FROM batiment b, zone_500 z
+WHERE ST_Intersects(b.geom, z.geom);`,
+  p:"Une jointure spatiale sans index GiST sur les deux tables compare chaque objet à tous les autres. C'est la cause n°1 des requêtes qui « ne finissent jamais ».",
+  doc:[[PG+'queries-table-expressions.html','Jointures (fr)'],[PG+'queries-with.html','Requêtes WITH / CTE (fr)']],
+  see:["Index spatial — le réflexe n°1","Jointure spatiale"]
+},
+"Jointures":{
+  q:"INNER garde seulement les correspondances ; LEFT garde tout de la table de gauche, avec des NULL quand rien ne correspond. En analyse territoriale, LEFT JOIN est presque toujours le bon choix : il conserve les communes à zéro école.",
+  ex:`SELECT c.nom, count(e.*) AS nb_ecoles
+FROM commune c
+LEFT JOIN ecole e ON ST_Intersects(c.geom, e.geom)
+GROUP BY c.nom;`,
+  p:"Avec un LEFT JOIN, écrivez count(e.*) et non count(*) : count(*) compterait 1 pour les communes sans école, au lieu de 0."
+},
+"LATERAL":{
+  q:"LATERAL autorise une sous-requête à faire référence à la ligne en cours. C'est ce qui rend possible le « pour chaque objet, trouve-moi le plus proche » — impossible à écrire autrement de manière efficace.",
+  ex:`SELECT a.id, v.nom AS borne_la_plus_proche, round(v.d::numeric,1) AS m
+FROM adresse a
+CROSS JOIN LATERAL (
+  SELECT nom, geom <-> a.geom AS d
+  FROM borne_incendie
+  ORDER BY geom <-> a.geom
+  LIMIT 1
+) v;`,
+  p:"CROSS JOIN LATERAL élimine les lignes sans résultat. Pour garder toutes les adresses même sans borne à proximité, utilisez LEFT JOIN LATERAL (...) ON true.",
+  see:["Plus proche voisin","Proximité"]
+},
+"Sous-requêtes":{
+  q:"Une requête dans la requête : pour filtrer sur l'existence d'un lien, comparer à une valeur globale, ou préparer un jeu intermédiaire.",
+  ex:`-- communes qui contiennent au moins une station
+SELECT nom FROM commune c
+WHERE EXISTS (SELECT 1 FROM station s WHERE ST_Within(s.geom, c.geom));`,
+  p:"NOT IN devient faux dès qu'un NULL traîne dans la sous-requête, et renvoie zéro ligne sans erreur. Préférez NOT EXISTS, qui n'a pas ce piège."
+},
+"CTE — WITH":{
+  q:"Une CTE nomme une étape intermédiaire. Au lieu d'une requête illisible à sous-requêtes imbriquées, on écrit l'analyse comme une suite d'étapes — exactement comme un modèle de géotraitement.",
+  ex:`WITH tampon AS (
+  SELECT id, ST_Buffer(geom, 250) AS geom FROM cours_eau
+),
+touche AS (
+  SELECT p.id, ST_Intersection(p.geom, t.geom) AS geom
+  FROM parcelle p JOIN tampon t ON ST_Intersects(p.geom, t.geom)
+)
+SELECT id, ST_Area(geom) AS surf_en_zone FROM touche;`,
+  p:"Depuis PostgreSQL 12, une CTE peut être « inlinée » par le planificateur. Si vous voulez garantir qu'une étape coûteuse n'est calculée qu'une fois, écrivez WITH x AS MATERIALIZED (...)."
+},
+"Ensembles & séries":{
+  q:"Empiler les résultats de deux requêtes (UNION), les croiser (INTERSECT), les soustraire (EXCEPT). generate_series fabrique des suites de nombres ou de dates — indispensable pour obtenir des séries sans trous.",
+  ex:`-- un calendrier mensuel complet, même pour les mois sans relevé
+SELECT d::date AS mois, count(r.*) AS nb
+FROM generate_series('2026-01-01'::date, '2026-12-01', '1 month') d
+LEFT JOIN releve r ON date_trunc('month', r.date_r) = d
+GROUP BY d ORDER BY d;`,
+  p:"UNION dédoublonne, ce qui coûte un tri complet. Si vous savez qu'il n'y a pas de doublon, UNION ALL est nettement plus rapide."
+},
+
+/* ---------- 8. fonctions ---------- */
+"Fonctions SQL utiles":{
+  q:"La boîte à outils du nettoyage et de la mise en forme : découper un code, normaliser un libellé, extraire une année, gérer les valeurs manquantes. Ce sont ces fonctions qui évitent d'exporter vers Excel pour « corriger vite fait ».",
+  ex:`SELECT
+  initcap(btrim(nom))                     AS nom_propre,
+  split_part(code_insee, '-', 1)          AS departement,
+  coalesce(altitude, 0)                   AS alt,
+  to_char(maj, 'YYYY-MM-DD')              AS derniere_maj,
+  concat_ws(' ', num, rue, ville)         AS adresse
+FROM adresse;`,
+  doc:[[PG+'functions.html','Toutes les fonctions (fr)']]
+},
+"Texte":{
+  q:"Normaliser des libellés, découper des codes composés, extraire par motif. En géomatique, c'est le quotidien du rapprochement de deux sources qui n'écrivent pas les toponymes de la même façon.",
+  ex:`SELECT split_part('NB-EDM-0042', '-', 2)          AS secteur,   -- EDM
+       regexp_replace('Rue  des   Pins', '\\s+', ' ', 'g') AS propre,
+       lpad('42', 5, '0')                          AS code;      -- 00042`,
+  p:"Pour rapprocher des noms mal orthographiés, activez pg_trgm et utilisez similarity(a, b) > 0.4 plutôt que d'espérer une égalité exacte.",
+  doc:[[PG+'functions-string.html','Fonctions de chaînes (fr)']]
+},
+"Nombres":{
+  q:"Arrondis, valeurs absolues, classes. width_bucket est la fonction méconnue qui découpe une variable continue en classes régulières — la base d'une carte choroplèthe.",
+  ex:`SELECT nom,
+       round(ST_Area(geom)::numeric, 1) AS m2,
+       width_bucket(ST_Area(geom), 0, 100000, 5) AS classe  -- 5 classes
+FROM parcelle;`,
+  doc:[[PG+'functions-math.html','Fonctions mathématiques (fr)']]
+},
+"Dates":{
+  q:"date_trunc regroupe par mois, jour ou heure ; extract sort une composante ; les intervalles s'additionnent en toutes lettres. Utilisez toujours timestamptz : il gère le fuseau et l'heure d'été à votre place.",
+  ex:`SELECT date_trunc('month', date_r) AS mois, count(*)
+FROM releve
+WHERE date_r >= now() - interval '1 year'
+GROUP BY 1 ORDER BY 1;`,
+  p:"BETWEEN sur des timestamps rate la dernière journée : « BETWEEN '2026-01-01' AND '2026-12-31' » exclut tout ce qui suit minuit le 31. Écrivez plutôt « >= '2026-01-01' AND < '2027-01-01' ».",
+  doc:[[PG+'functions-datetime.html','Fonctions date/heure (fr)']]
+},
+"NULL & conversion":{
+  q:"NULL veut dire « inconnu », pas « zéro » ni « vide ». coalesce fournit une valeur de repli, nullif transforme un code sentinelle en vrai NULL — indispensable avec les -9999 des données de terrain.",
+  ex:`SELECT coalesce(nom, 'sans nom')       AS etiquette,
+       nullif(altitude, -9999)         AS alt_reelle,
+       greatest(surf_calc, surf_declaree) AS surf_retenue
+FROM releve;`,
+  p:"Dans un calcul, un seul NULL contamine tout : 100 + NULL vaut NULL. Enveloppez avec coalesce(colonne, 0) avant d'additionner."
+},
+"JSON & tableaux":{
+  q:"jsonb stocke des attributs variables sans avoir à créer une colonne par cas — pratique pour des métadonnées de capteurs ou des tags OpenStreetMap. C'est aussi la voie la plus courte pour produire du GeoJSON.",
+  ex:`SELECT jsonb_build_object(
+  'type', 'FeatureCollection',
+  'features', jsonb_agg(jsonb_build_object(
+      'type', 'Feature',
+      'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326))::jsonb,
+      'properties', to_jsonb(t) - 'geom'))
+) FROM parcelle t;`,
+  p:"-> renvoie du JSON, ->> renvoie du texte. Pour comparer à une chaîne, c'est ->> qu'il vous faut : data->>'source' = 'GPS'.",
+  doc:[[PG+'functions-json.html','Fonctions JSON (fr)']],
+  see:["Export SQL"]
+},
+
+/* ---------- 9. index ---------- */
+"Index & performance":{
+  q:"Un index est une table des matières : sans lui, la base lit toutes les lignes. En spatial, l'index GiST est non négociable — c'est la différence entre une requête en 0,1 seconde et la même en 10 minutes. Le reste de la branche sert à diagnostiquer quand ça rame malgré tout.",
+  ex:`-- avant / après, sur la même requête
+EXPLAIN (ANALYZE) SELECT * FROM parcelle p JOIN commune c
+  ON ST_Intersects(p.geom, c.geom);
+-- « Seq Scan on parcelle » = aucun index utilisé
+
+CREATE INDEX idx_parcelle_geom ON parcelle USING GIST (geom);
+CREATE INDEX idx_commune_geom  ON commune  USING GIST (geom);
+VACUUM ANALYZE parcelle;
+VACUUM ANALYZE commune;
+-- relancez l'EXPLAIN : « Index Scan » doit apparaître`,
+  p:"Un index tout juste créé n'est pris en compte qu'une fois les statistiques à jour. Terminez toujours par VACUUM ANALYZE, sinon le planificateur continue d'ignorer votre index.",
+  doc:[[PG+'indexes.html','Index (fr)'],[GIS+'performance_tips.html','Conseils de performance PostGIS']]
+},
+"Index spatial — le réflexe n°1":{
+  q:"L'index GiST range les géométries par boîte englobante. Toutes les fonctions ST_Intersects, ST_Contains, ST_DWithin et l'opérateur <-> savent l'utiliser. Une couche sans index spatial est une couche inexploitable.",
+  ex:`CREATE INDEX idx_batiment_geom ON batiment USING GIST (geom);
+VACUUM ANALYZE batiment;
+
+-- vérifier qu'il sert vraiment
+EXPLAIN (ANALYZE) SELECT * FROM batiment
+WHERE ST_DWithin(geom, ST_SetSRID(ST_MakePoint(300000,7400000),2953), 500);`,
+  p:"Créez l'index APRÈS le chargement massif, jamais avant : indexer 2 millions de lignes une par une pendant l'import est bien plus lent que d'indexer une fois à la fin.",
+  doc:[[GIS+'using_postgis_dbmanagement.html','Index spatiaux (doc PostGIS)']]
+},
+"Index classiques":{
+  q:"Les index non spatiaux : B-tree pour les codes et les dates, GIN pour jsonb et la recherche floue, BRIN pour les très grosses tables déjà triées (relevés de capteurs par exemple).",
+  ex:`CREATE INDEX ON parcelle (code);              -- recherche par identifiant
+CREATE INDEX ON parcelle (lower(nom));        -- si vous cherchez en minuscules
+CREATE INDEX ON releve USING BRIN (date_r);   -- énorme table chronologique`,
+  p:"Un index sur expression n'est utilisé que si la requête écrit exactement la même expression : indexer lower(nom) ne sert à rien si vous interrogez avec ILIKE."
+},
+"Diagnostiquer":{
+  q:"Ne devinez jamais : mesurez. EXPLAIN ANALYZE exécute la requête et affiche le plan réel, avec les temps. Cherchez les « Seq Scan » sur les grosses tables et les écarts entre lignes estimées et lignes réelles.",
+  ex:`EXPLAIN (ANALYZE, BUFFERS)
+SELECT c.nom, count(*) FROM commune c
+JOIN batiment b ON ST_Intersects(c.geom, b.geom)
+GROUP BY c.nom;
+
+-- index jamais utilisés (à supprimer, ils coûtent à chaque écriture)
+SELECT relname, indexrelname FROM pg_stat_user_indexes WHERE idx_scan = 0;`,
+  doc:[[PG+'using-explain.html','Utiliser EXPLAIN (fr)']]
+},
+"Bonnes pratiques spatiales":{
+  q:"Quatre habitudes qui suffisent à régler l'essentiel des problèmes de lenteur en PostGIS : le bon prédicat, la bonne géométrie transformée, les gros polygones découpés, la mémoire de travail suffisante.",
+  ex:`-- ✗ n'utilise pas l'index
+WHERE ST_Distance(a.geom, b.geom) < 500
+-- ✓ utilise l'index
+WHERE ST_DWithin(a.geom, b.geom, 500)
+
+-- ✗ transforme 2 millions de géométries
+WHERE ST_Intersects(ST_Transform(geom, 4326), :emprise)
+-- ✓ transforme une seule emprise
+WHERE ST_Intersects(geom, ST_Transform(:emprise, 2953))`,
+  p:"Un polygone à 200 000 sommets (une côte, un bassin versant) ruine toutes les jointures qui le touchent. ST_Subdivide(geom, 255) le découpe en morceaux indexables : gain fréquent d'un facteur 10.",
+  see:["Proximité","Simplifier & convertir"]
+},
+
+/* ---------- 10. postgis fondations ---------- */
+"PostGIS — fondations":{
+  q:"PostGIS ajoute à PostgreSQL un type geometry et des centaines de fonctions ST_*. Trois notions suffisent pour démarrer : le type (geometry ou geography), le système de coordonnées (SRID), et la façon de construire ou d'exporter une géométrie.",
+  ex:`CREATE TABLE station (
+  id serial PRIMARY KEY,
+  nom text,
+  geom geometry(Point, 4326)
+);
+
+INSERT INTO station (nom, geom)
+VALUES ('Quai nord', ST_SetSRID(ST_MakePoint(-68.32, 47.37), 4326));
+
+SELECT nom, ST_AsText(geom), ST_SRID(geom) FROM station;`,
+  p:"Les fonctions PostGIS refusent de travailler sur deux géométries de SRID différents. Harmonisez le SRID de toutes vos couches dès l'import : c'est la décision la plus rentable d'un projet.",
+  doc:[ATELIER,[GIS+'reference.html','Référence des fonctions PostGIS']]
+},
+"Types":{
+  q:"geometry travaille dans un plan : rapide, avec les unités de la projection (des mètres si la couche est projetée). geography travaille sur le globe : distances et surfaces toujours en mètres, mais moins de fonctions et plus lent. Règle simple : projetez vos données et restez en geometry ; utilisez geography ponctuellement, par transtypage, quand vous avez du 4326 sous la main.",
+  ex:`-- longueur d'une route stockée en degrés (4326)
+SELECT ST_Length(geom)             FROM route;  -- ≈ 0.043  → des degrés, inutile
+SELECT ST_Length(geom::geography)  FROM route;  -- ≈ 4821   → des mètres, exact`,
+  p:"Une surface calculée sur du 4326 en geometry est exprimée en degrés carrés : elle n'a aucun sens. Si le résultat ressemble à 0,0001, c'est le symptôme.",
+  doc:[[GIS+'using_postgis_dbmanagement.html','Types géométriques (doc PostGIS)']]
+},
+"SRID & métadonnées":{
+  q:"Le SRID est le code du système de coordonnées (norme EPSG). Il dit à PostGIS comment interpréter les nombres X et Y. Deux couches dans deux SRID différents ne peuvent pas être croisées avant reprojection.",
+  ex:`SELECT ST_SRID(geom), count(*) FROM parcelle GROUP BY 1;
+SELECT srid, auth_name, srtext FROM spatial_ref_sys WHERE srid = 2953;
+SELECT f_table_name, srid, type FROM geometry_columns;`,
+  p:"3857 (Web Mercator) sert à afficher des fonds de carte, jamais à mesurer : les surfaces y sont fausses de plus de 100 % aux hautes latitudes. Mesurez en projection locale (UTM, stéréographique provinciale) ou en geography."
+},
+"Déclarer une géométrie":{
+  q:"Ajouter une colonne géométrique à une table existante. La méthode moderne (ALTER TABLE ... geometry(Type, SRID)) est plus lisible que l'ancienne fonction AddGeometryColumn, encore présente dans beaucoup de tutoriels.",
+  ex:`ALTER TABLE releve ADD COLUMN geom geometry(Point, 2953);
+UPDATE releve SET geom = ST_SetSRID(ST_MakePoint(x, y), 2953);
+CREATE INDEX ON releve USING GIST (geom);`,
+  p:"Si le SRID est simplement mal déclaré alors que les coordonnées sont bonnes, utilisez UpdateGeometrySRID (qui ré-étiquette) et surtout pas ST_Transform (qui déplacerait les données)."
+},
+"Construire":{
+  q:"Fabriquer une géométrie à partir de coordonnées, de texte, de GeoJSON, ou d'autres géométries. C'est ce dont vous avez besoin pour transformer un CSV de coordonnées en couche cartographique.",
+  ex:`-- CSV → points
+UPDATE brut SET geom = ST_SetSRID(ST_MakePoint(lon, lat), 4326);
+
+-- trace GPS : relier les points d'une session dans l'ordre du temps
+SELECT session_id, ST_MakeLine(geom ORDER BY horodatage) AS trace
+FROM point_gps GROUP BY session_id;`,
+  p:"ST_MakePoint ne pose aucun SRID : la géométrie sort avec SRID 0 et sera rejetée par les jointures. Enveloppez toujours dans ST_SetSRID (ou utilisez ST_Point(x, y, srid) en PostGIS 3.2+)."
+},
+"Exporter une géométrie":{
+  q:"Transformer une géométrie en texte lisible (WKT), en GeoJSON pour le web, ou en tuile vectorielle. ST_AsText est l'outil de débogage : il permet de voir ce qu'on manipule.",
+  ex:`SELECT ST_AsText(ST_Centroid(geom)) FROM commune LIMIT 3;
+SELECT ST_AsGeoJSON(ST_Transform(geom, 4326), 6) FROM commune LIMIT 1;`,
+  p:"Le GeoJSON impose le WGS 84 (4326) : reprojetez avant d'exporter, sinon vos coordonnées projetées seront interprétées comme des degrés par les clients web.",
+  see:["Export SQL","Tuiles vectorielles"]
+},
+
+/* ---------- 11. mesurer ---------- */
+"PostGIS — mesurer & inspecter":{
+  q:"Avant d'analyser, on vérifie : quel type de géométrie, quel SRID, combien de sommets, des géométries invalides ? Ensuite seulement on mesure surfaces, longueurs et distances. Cette branche est le contrôle technique de vos couches.",
+  ex:`SELECT GeometryType(geom) AS type,
+       ST_SRID(geom)        AS srid,
+       count(*)             AS nb,
+       count(*) FILTER (WHERE NOT ST_IsValid(geom)) AS invalides
+FROM parcelle
+GROUP BY 1, 2;`,
+  p:"Une géométrie invalide (auto-intersection, anneau mal fermé) fait échouer ST_Intersection ou ST_Union avec des erreurs GEOS obscures. Contrôlez la validité avant, pas après.",
+  doc:[[GIS+'reference.html','Référence PostGIS'],ATELIER]
+},
+"Inspecter":{
+  q:"Décrire une géométrie : son type, son nombre de points, ses sommets. ST_Dump éclate une géométrie multiple en parties simples — l'équivalent SQL de « Morceaux multiples vers morceaux uniques » de QGIS.",
+  ex:`SELECT id, (ST_Dump(geom)).path[1] AS partie, (ST_Dump(geom)).geom
+FROM parcelle_multi;
+
+SELECT ST_Summary(geom) FROM parcelle LIMIT 1;`
+},
+"Valider":{
+  q:"La validité est la première cause d'échec des géotraitements. ST_IsValidReason dit précisément ce qui cloche et où ; ST_MakeValid répare automatiquement dans la grande majorité des cas.",
+  ex:`-- diagnostic
+SELECT id, ST_IsValidReason(geom)
+FROM parcelle WHERE NOT ST_IsValid(geom);
+
+-- réparation, en gardant une trace de ce qui a été touché
+UPDATE parcelle SET geom = ST_MakeValid(geom), maj = now()
+WHERE NOT ST_IsValid(geom);`,
+  p:"ST_MakeValid peut transformer un polygone en collection (polygone + ligne résiduelle). Nettoyez ensuite avec ST_CollectionExtract(geom, 3) pour ne garder que les polygones.",
+  see:["Contrôle qualité d'une livraison"]
+},
+"Mesurer":{
+  q:"Surfaces, longueurs, distances. Le résultat est toujours exprimé dans l'unité du SRID : des mètres en projection locale, des degrés en 4326. D'où l'astuce du transtypage ::geography quand la couche est en degrés.",
+  ex:`SELECT nom,
+       ST_Area(geom)             AS m2,          -- couche en 2953 → m²
+       ST_Area(geom)/10000       AS hectares,
+       ST_Perimeter(geom)        AS m
+FROM parcelle;
+
+-- distance réelle entre deux points en 4326
+SELECT ST_Distance(a.geom::geography, b.geom::geography) AS metres
+FROM station a, station b WHERE a.id = 1 AND b.id = 2;`,
+  p:"Ne comparez jamais des surfaces calculées dans deux projections différentes : l'écart peut atteindre plusieurs pour cent sans que rien ne le signale."
+},
+"Points remarquables":{
+  q:"Réduire une géométrie à un point ou à son emprise : pour étiqueter une carte, pour accélérer une jointure, ou pour connaître l'étendue d'une couche.",
+  ex:`-- point d'étiquette garanti dans le polygone (le centroïde peut sortir)
+SELECT nom, ST_PointOnSurface(geom) AS pt_etiquette FROM commune;
+
+-- emprise complète d'une couche
+SELECT ST_Extent(geom) FROM commune;`,
+  p:"ST_Centroid d'un polygone en croissant ou en U tombe hors du polygone. Pour placer une étiquette ou faire une jointure « un seul polygone par objet », utilisez ST_PointOnSurface."
+},
+
+/* ---------- 12. relations ---------- */
+"PostGIS — relations spatiales":{
+  q:"Les prédicats répondent par oui ou non à la question « quelle est la relation entre ces deux géométries ? ». Ce sont eux qui remplacent la sélection par localisation des logiciels SIG, et ils constituent la condition des jointures spatiales.",
+  ex:`-- sélection par localisation : les bâtiments dans la zone inondable
+SELECT b.* FROM batiment b JOIN zone_inondable z
+  ON ST_Intersects(b.geom, z.geom);
+
+-- ceux entièrement à l'intérieur seulement
+SELECT b.* FROM batiment b JOIN zone_inondable z
+  ON ST_Within(b.geom, z.geom);`,
+  p:"ST_Contains est faux pour un point posé exactement sur la frontière d'un polygone. Si des objets « disparaissent » sur les limites, utilisez ST_Covers, plus tolérant.",
+  doc:[[GIS+'reference.html#Spatial_Relationships','Relations spatiales (doc PostGIS)'],ATELIER]
+},
+"Prédicats":{
+  q:"Neuf verbes qui couvrent tous les cas. Dans 80 % des situations, ST_Intersects suffit : il est vrai dès que les deux géométries se touchent d'une façon ou d'une autre.",
+  ex:`SELECT ST_Intersects(a.geom, b.geom) AS se_touchent,
+       ST_Contains  (a.geom, b.geom) AS a_contient_b,
+       ST_Overlaps  (a.geom, b.geom) AS se_chevauchent
+FROM zone a, parcelle b WHERE a.id = 1 AND b.id = 7;`,
+  p:"ST_Contains(a,b) et ST_Within(b,a) disent la même chose dans l'autre sens. Inverser les arguments est l'erreur classique — et elle ne produit aucun message, juste zéro résultat."
+},
+"Proximité":{
+  q:"Deux outils très différents : ST_DWithin répond « à moins de X mètres ? » et sait utiliser l'index ; l'opérateur <-> trie par distance croissante et permet le plus proche voisin.",
+  ex:`-- toutes les bornes à moins de 300 m d'une adresse
+SELECT b.* FROM borne b
+WHERE ST_DWithin(b.geom, (SELECT geom FROM adresse WHERE id=12), 300);
+
+-- les 5 plus proches, dans l'ordre
+SELECT nom, geom <-> (SELECT geom FROM adresse WHERE id=12) AS d
+FROM borne ORDER BY 2 LIMIT 5;`,
+  p:"L'opérateur <-> n'accélère la requête que s'il apparaît dans le ORDER BY. Placé dans le WHERE, il force une lecture complète de la table.",
+  see:["LATERAL","Plus proche voisin"]
+},
+
+/* ---------- 13. géotraitement ---------- */
+"PostGIS — géotraitement":{
+  q:"L'équivalent SQL de la boîte à outils de traitement de QGIS : tampon, découpage, fusion, différence, simplification, reprojection. Avantage sur l'interface graphique : le traitement est écrit, donc reproductible, versionnable et exécutable sur des millions d'objets.",
+  ex:`-- « zone tampon » + « découper » + « regrouper » en une requête
+CREATE TABLE travail.zone_tampon AS
+SELECT type,
+       ST_Union(ST_Intersection(ST_Buffer(c.geom, 100), e.geom)) AS geom
+FROM cours_eau c
+JOIN emprise_etude e ON ST_Intersects(c.geom, e.geom)
+GROUP BY type;
+
+CREATE INDEX ON travail.zone_tampon USING GIST (geom);`,
+  p:"Enchaîner les traitements sur des géométries invalides déclenche des erreurs GEOS incompréhensibles. Passez toujours par ST_MakeValid en amont d'une chaîne de traitement.",
+  doc:[[GIS+'reference.html#Geometry_Processing','Traitement géométrique (doc PostGIS)'],ATELIER]
+},
+"Superposition":{
+  q:"Les opérations booléennes entre couches : intersection (découpage), différence (effacement), union (fusion). Attention à la distinction ST_Union / ST_Collect, qui n'ont pas du tout le même coût.",
+  ex:`-- surface de chaque parcelle réellement située en zone inondable
+SELECT p.code,
+       ST_Area(ST_Intersection(p.geom, z.geom)) AS surf_inondable
+FROM parcelle p JOIN zone_inondable z ON ST_Intersects(p.geom, z.geom);
+
+-- parcelles amputées de la zone inondable
+SELECT p.code, ST_Difference(p.geom, z.geom) AS geom
+FROM parcelle p JOIN zone_inondable z ON ST_Intersects(p.geom, z.geom);`,
+  p:"ST_Union fusionne réellement les limites (coûteux) ; ST_Collect empile sans rien fusionner (instantané). Pour un dissolve, c'est ST_Union ; pour simplement regrouper avant un export, ST_Collect suffit."
+},
+"Tampons & enveloppes":{
+  q:"Le tampon est l'opération SIG la plus demandée : zone d'influence, périmètre de protection, marge de sécurité. La distance s'exprime dans l'unité du SRID — d'où la nécessité de travailler en projection métrique.",
+  ex:`-- 100 m autour des cours d'eau, couche projetée en 2953
+SELECT id, ST_Buffer(geom, 100) AS geom FROM cours_eau;
+
+-- même chose depuis une couche en degrés (4326)
+SELECT id, ST_Buffer(geom::geography, 100)::geometry AS geom FROM cours_eau;`,
+  p:"ST_Buffer(geom, 100) sur une couche en 4326 crée un tampon de 100 degrés, soit plusieurs milliers de kilomètres. Si le résultat couvre un continent, c'est ça.",
+  see:["Zone tampon puis sélection"]
+},
+"Reprojeter & recaler":{
+  q:"Distinction fondamentale : ST_Transform recalcule les coordonnées d'un système à l'autre ; ST_SetSRID se contente de changer l'étiquette sans toucher aux nombres. Confondre les deux déplace ou fausse toute une couche.",
+  ex:`-- vraie reprojection de la couche entière
+ALTER TABLE parcelle ALTER COLUMN geom
+  TYPE geometry(MultiPolygon, 2953) USING ST_Transform(geom, 2953);
+
+-- correction d'une étiquette erronée (les coordonnées étaient déjà bonnes)
+SELECT UpdateGeometrySRID('public', 'parcelle', 'geom', 2953);`,
+  p:"Le réflexe à prendre : reprojeter à l'import, une fois pour toutes, vers un SRID unique pour tout le projet. Reprojeter à la volée dans chaque requête coûte cher et casse l'usage des index."
+},
+"Simplifier & convertir":{
+  q:"Alléger des géométries pour l'affichage web, convertir entre simple et multiple, forcer en 2D. La généralisation est un compromis : moins de sommets, affichage plus rapide, précision moindre.",
+  ex:`-- version allégée pour une carte à petite échelle
+CREATE TABLE commune_light AS
+SELECT id, nom, ST_SimplifyPreserveTopology(geom, 25) AS geom FROM commune;
+
+-- éliminer les résidus non polygonaux d'une intersection
+SELECT ST_CollectionExtract(ST_Intersection(a.geom, b.geom), 3) AS geom ...`,
+  p:"ST_Simplify peut créer des trous et des chevauchements entre polygones voisins. Pour un maillage administratif, utilisez ST_SimplifyPreserveTopology."
+},
+"Générer & regrouper":{
+  q:"Créer de la géométrie à partir de rien : grilles régulières, polygones de Thiessen, triangulations, échantillons aléatoires. Et regrouper des points en foyers (clustering) sans quitter le SQL.",
+  ex:`-- densité de points sur une grille hexagonale de 1 km
+SELECT h.geom, count(p.*) AS nb
+FROM ST_HexagonGrid(1000, (SELECT ST_Extent(geom) FROM secteur)) h
+LEFT JOIN incident p ON ST_Intersects(h.geom, p.geom)
+GROUP BY h.geom
+HAVING count(p.*) > 0;`,
+  p:"ST_HexagonGrid et ST_SquareGrid demandent PostGIS 3.1 ou plus récent. Sur une version antérieure, il faut passer par generate_series.",
+  see:["Agréger sur une grille"]
+},
+"Raster (aperçu)":{
+  q:"PostGIS sait aussi stocker des rasters (MNT, orthophotos) et les croiser avec du vecteur : altitude sous un point, statistiques zonales, découpage par emprise. Attention, c'est un domaine plus exigeant : tuilage obligatoire et volumétrie à surveiller.",
+  ex:`-- altitude du MNT sous chaque relevé
+SELECT r.id, ST_Value(m.rast, r.geom) AS altitude
+FROM releve r JOIN mnt m ON ST_Intersects(m.rast, r.geom);
+
+-- statistiques zonales : altitude moyenne par commune
+SELECT c.nom, (ST_SummaryStats(ST_Clip(m.rast, c.geom))).mean
+FROM commune c JOIN mnt m ON ST_Intersects(m.rast, c.geom);`,
+  p:"Un raster chargé sans tuilage (-t) est un objet monolithique de plusieurs gigaoctets, inutilisable. Chargez toujours avec -t 256x256 ou 512x512.",
+  doc:[[GIS+'RT_reference.html','Référence raster PostGIS']]
+},
+
+/* ---------- 14. recettes ---------- */
+"Recettes géomatiques":{
+  q:"Les patrons complets qui reviennent dans presque tous les projets. Copiez-les, remplacez les noms de tables : vous avez 90 % des analyses SIG courantes. Chaque recette combine ce que les autres branches expliquent séparément.",
+  ex:`-- La recette mère : jointure spatiale + agrégation + indicateur
+SELECT c.nom,
+       count(b.*)                                   AS nb_batiments,
+       round((count(b.*) / (ST_Area(c.geom)/1e6))::numeric, 1) AS par_km2
+FROM commune c
+LEFT JOIN batiment b ON ST_Intersects(c.geom, b.geom)
+GROUP BY c.id, c.nom
+ORDER BY par_km2 DESC;`,
+  doc:[ATELIER]
+},
+"Jointure spatiale":{
+  q:"Transférer les attributs d'une couche vers une autre par la géométrie, sans clé commune. L'équivalent de « Joindre les attributs par localisation » dans QGIS.",
+  ex:`-- ajouter le nom de commune à chaque parcelle
+UPDATE parcelle p SET commune = c.nom
+FROM commune c
+WHERE ST_Within(ST_PointOnSurface(p.geom), c.geom);`,
+  p:"Avec ST_Intersects, une parcelle à cheval sur deux communes produit deux lignes en sortie (et fait échouer un UPDATE). Joindre sur ST_PointOnSurface garantit une seule correspondance."
+},
+"Compter des points par polygone":{
+  q:"L'analyse territoriale de base : combien d'équipements, d'incidents, de clients par zone. Le LEFT JOIN est essentiel pour conserver les zones à zéro, que la carte doit montrer.",
+  ex:`SELECT c.id, c.nom, c.geom, count(e.*) AS nb_ecoles
+FROM commune c
+LEFT JOIN ecole e ON ST_Intersects(c.geom, e.geom)
+GROUP BY c.id, c.nom, c.geom
+ORDER BY nb_ecoles DESC;`,
+  p:"Gardez c.geom dans le SELECT et dans le GROUP BY : sans elle, le résultat n'est plus cartographiable dans QGIS."
+},
+"Fusion par attribut (dissolve)":{
+  q:"Fusionner les objets qui partagent une valeur : réunir les parcelles d'un même propriétaire, les communes d'une même MRC, les tronçons d'une même route.",
+  ex:`CREATE TABLE secteur AS
+SELECT type,
+       ST_Union(geom) AS geom,
+       sum(surf)      AS surf_totale,
+       count(*)       AS nb_parcelles
+FROM parcelle GROUP BY type;`,
+  p:"ST_Union sur des dizaines de milliers de polygones peut être très long. Filtrez d'abord, et pensez à ST_Subdivide si les géométries sources sont énormes."
+},
+"Zone tampon puis sélection":{
+  q:"Le classique de l'étude d'impact : tout ce qui se trouve à moins de X mètres d'un objet. Deux écritures possibles — le tampon matérialisé (visible sur la carte) ou ST_DWithin (plus rapide, sans géométrie intermédiaire).",
+  ex:`-- version rapide, sans créer le tampon
+SELECT b.*
+FROM batiment b
+WHERE EXISTS (
+  SELECT 1 FROM cours_eau c WHERE ST_DWithin(b.geom, c.geom, 100)
+);`,
+  p:"Si vous devez seulement savoir « qui est à moins de 100 m », ST_DWithin est bien plus efficace que construire un tampon puis croiser. Le tampon ne se justifie que s'il doit apparaître sur la carte.",
+  see:["Proximité"]
+},
+"Découper sur une emprise":{
+  q:"Extraire une zone d'étude d'un jeu national ou provincial. Deux variantes : garder les objets entiers qui touchent l'emprise, ou les couper net sur la limite.",
+  ex:`-- coupe nette sur l'emprise
+CREATE TABLE etude.route AS
+SELECT r.id, r.nom,
+       ST_CollectionExtract(ST_Intersection(r.geom, e.geom), 2) AS geom
+FROM route r JOIN emprise e ON ST_Intersects(r.geom, e.geom);
+CREATE INDEX ON etude.route USING GIST (geom);`,
+  p:"ST_CollectionExtract(…, 1|2|3) filtre respectivement points, lignes, polygones. Sans lui, une intersection lignes/polygone peut produire des points isolés que QGIS refusera d'afficher."
+},
+"Plus proche voisin":{
+  q:"Pour chaque objet, trouver le plus proche d'une autre couche et la distance associée : borne d'incendie la plus proche, arrêt de bus le plus proche, point de mesure le plus proche.",
+  ex:`SELECT a.id, a.adresse,
+       v.nom  AS borne,
+       round(v.d::numeric, 1) AS distance_m
+FROM adresse a
+CROSS JOIN LATERAL (
+  SELECT nom, b.geom <-> a.geom AS d
+  FROM borne b ORDER BY b.geom <-> a.geom LIMIT 1
+) v
+ORDER BY distance_m DESC;   -- les adresses les moins bien desservies d'abord`,
+  p:"Les deux couches doivent être dans le même SRID, sinon <-> renvoie une erreur. Et l'index GiST doit exister sur la table interrogée, sinon la requête devient quadratique."
+},
+"Contrôle qualité d'une livraison":{
+  q:"Le bilan à passer systématiquement sur toute donnée reçue d'un tiers, avant de l'intégrer. Cinq minutes qui évitent des jours de reprise.",
+  ex:`SELECT count(*)                                          AS total,
+       count(*) FILTER (WHERE geom IS NULL)               AS sans_geometrie,
+       count(*) FILTER (WHERE NOT ST_IsValid(geom))       AS invalides,
+       count(DISTINCT ST_SRID(geom))                      AS nb_srid,
+       count(DISTINCT GeometryType(geom))                 AS nb_types,
+       count(*) - count(DISTINCT code)                    AS doublons_code
+FROM livraison;`,
+  p:"nb_srid ou nb_types supérieur à 1 est un signal d'alarme : la couche mélange des systèmes ou des types de géométrie et posera problème à chaque traitement.",
+  see:["Valider","Nettoyer & valider"]
+},
+"Agréger sur une grille":{
+  q:"Représenter une densité sans dépendre du découpage administratif : on découpe l'espace en mailles régulières (hexagones ou carrés) et on compte dedans.",
+  ex:`CREATE TABLE densite_hex AS
+SELECT h.geom, count(i.*) AS nb
+FROM ST_HexagonGrid(500, (SELECT ST_Extent(geom) FROM incident)) h
+LEFT JOIN incident i ON ST_Intersects(h.geom, i.geom)
+GROUP BY h.geom HAVING count(i.*) > 0;
+
+CREATE INDEX ON densite_hex USING GIST (geom);`,
+  p:"La grille hérite du SRID de l'emprise fournie. Vérifiez-le avant de croiser, sinon la jointure ne renverra rien du tout."
+},
+"Tuiles vectorielles":{
+  q:"Servir des données directement à un client web (MapLibre, Leaflet, OpenLayers) sans passer par un serveur cartographique. PostGIS produit la tuile binaire, une petite API la renvoie.",
+  ex:`SELECT ST_AsMVT(q, 'parcelle') FROM (
+  SELECT id, code,
+         ST_AsMVTGeom(ST_Transform(geom, 3857),
+                      ST_TileEnvelope(14, 5241, 5822)) AS geom
+  FROM parcelle
+  WHERE ST_Transform(geom, 3857) && ST_TileEnvelope(14, 5241, 5822)
+) q;`,
+  p:"Sans la clause WHERE ... && ST_TileEnvelope, la requête traite toute la couche pour chaque tuile demandée. C'est ce filtre qui rend le service utilisable."
+},
+
+/* ---------- 15. import/export ---------- */
+"Import · export · visualisation":{
+  q:"Le pont entre la base et le reste du monde SIG. Retenez surtout ogr2ogr : un seul outil qui lit et écrit Shapefile, GeoPackage, GeoJSON, KML, DXF, geodatabase, et parle directement à PostGIS. shp2pgsql reste utile pour les Shapefiles, raster2pgsql pour les images.",
+  ex:`# import d'un GeoPackage, reprojeté et prêt à l'emploi
+ogr2ogr -f PostgreSQL PG:"dbname=gis user=moi" communes.gpkg \\
+  -nln reference.commune -lco GEOMETRY_NAME=geom -lco FID=id \\
+  -nlt PROMOTE_TO_MULTI -t_srs EPSG:2953 -overwrite -progress
+
+# export d'une analyse vers un GeoPackage pour un collègue
+ogr2ogr -f GPKG resultat.gpkg PG:"dbname=gis" \\
+  -sql "SELECT nom, geom FROM travail.zone_risque"`,
+  p:"Toujours passer -nlt PROMOTE_TO_MULTI à l'import : beaucoup de fichiers mélangent Polygon et MultiPolygon, ce qui fait échouer le chargement en plein milieu.",
+  doc:[['https://gdal.org/programs/ogr2ogr.html','Documentation ogr2ogr (GDAL)'],['https://docs.qgis.org/latest/fr/docs/user_manual/','Manuel QGIS (fr)']]
+},
+"Shapefile":{
+  q:"shp2pgsql convertit un Shapefile en script SQL, qu'on envoie directement à psql par un tube. C'est l'outil historique, toujours installé avec PostGIS.",
+  ex:`shp2pgsql -s 2953 -I -D -W LATIN1 communes.shp reference.commune | psql -d gis
+# -s SRID de la source   -I crée l'index GiST   -D format binaire (rapide)
+# -W encodage du .dbf    -a ajoute au lieu de créer`,
+  p:"Le Shapefile tronque les noms de colonnes à 10 caractères et n'a pas de vrai type date. Si vous avez le choix, importez du GeoPackage avec ogr2ogr."
+},
+"GDAL / ogr2ogr — le couteau suisse":{
+  q:"Le convertisseur universel du monde géospatial. Une seule ligne de commande permet de lire n'importe quel format, de le reprojeter et de l'écrire dans PostGIS — ou l'inverse.",
+  ex:`# inspecter AVANT d'importer : couches, SRS, nombre d'entités
+ogrinfo -so donnees.gpkg
+
+# importer en accélérant les écritures
+ogr2ogr -f PostgreSQL PG:"dbname=gis" donnees.gpkg \\
+  -nln travail.import -t_srs EPSG:2953 -nlt PROMOTE_TO_MULTI \\
+  -gt 65536 -progress -overwrite`,
+  p:"-overwrite supprime et recrée la table (index et droits perdus) ; -append ajoute à l'existant. Choisissez en connaissance de cause sur une table de production."
+},
+"Raster":{
+  q:"raster2pgsql fait pour les images ce que shp2pgsql fait pour les vecteurs. Le tuilage n'est pas optionnel : c'est lui qui rend le raster interrogeable.",
+  ex:`raster2pgsql -s 2953 -I -C -M -t 256x256 mnt.tif raster.mnt | psql -d gis
+# -t tuilage  -I index  -C contraintes  -M analyse après chargement
+
+# option « hors base » : la base ne stocke que la référence au fichier
+raster2pgsql -s 2953 -R -I -t 512x512 ortho.tif raster.ortho | psql -d gis`,
+  p:"Une orthophoto complète chargée en base peut peser des centaines de gigaoctets. Pour de l'imagerie, le mode -R (raster hors base) est souvent le bon compromis."
+},
+"Export SQL":{
+  q:"Sortir des résultats sans outil externe : CSV pour un tableur, GeoJSON pour le web. Utile quand on n'a que psql sous la main.",
+  ex:`\\copy (SELECT nom, ST_X(geom) AS lon, ST_Y(geom) AS lat FROM station) TO 'stations.csv' CSV HEADER
+
+-- GeoJSON complet, prêt pour Leaflet
+\\copy (SELECT jsonb_build_object('type','FeatureCollection','features', jsonb_agg(jsonb_build_object('type','Feature','geometry',ST_AsGeoJSON(ST_Transform(geom,4326))::jsonb,'properties',to_jsonb(t)-'geom'))) FROM station t) TO 'stations.geojson'`,
+  see:["JSON & tableaux"]
+},
+"Clients & visualisation":{
+  q:"QGIS se connecte nativement à PostGIS : les couches restent dans la base, plusieurs personnes travaillent sur la même donnée, et toute requête SQL peut devenir une couche affichable.",
+  ex:`-- vue conçue pour être chargée dans QGIS :
+-- une clé primaire entière, une seule colonne géométrique typée, un index
+CREATE MATERIALIZED VIEW mv_synthese AS
+SELECT c.id, c.nom, count(e.*) AS nb, c.geom
+FROM commune c LEFT JOIN ecole e ON ST_Intersects(c.geom, e.geom)
+GROUP BY c.id, c.nom, c.geom;
+
+CREATE UNIQUE INDEX ON mv_synthese (id);
+CREATE INDEX ON mv_synthese USING GIST (geom);`,
+  p:"QGIS refuse d'afficher une couche sans identifiant unique entier. Si le DB Manager demande « colonne de clé primaire » et que rien ne convient, ajoutez un id à votre vue.",
+  see:["Vues"]
+},
+
+/* ---------- 16. admin ---------- */
+"Administration & maintenance":{
+  q:"Le minimum vital pour que la base reste fiable et rapide : sauvegarder, entretenir, surveiller. Quatre commandes bien comprises suffisent à éviter la quasi-totalité des incidents.",
+  ex:`# sauvegarde complète, format compressé
+pg_dump -Fc -Z6 -d gis -f gis_$(date +%Y%m%d).dump
+pg_dumpall -g > roles.sql          # rôles et droits, souvent oubliés
+
+# restauration dans une base neuve
+createdb gis_test
+pg_restore -d gis_test -j 4 gis_20260724.dump`,
+  p:"Une sauvegarde jamais restaurée n'est pas une sauvegarde. Testez la restauration au moins une fois, dans une base de test.",
+  doc:[[PG+'backup.html','Sauvegardes (fr)'],[PG+'maintenance.html','Maintenance (fr)']]
+},
+"Sauvegarder / restaurer":{
+  q:"pg_dump exporte une base cohérente pendant que les autres continuent de travailler. Le format -Fc (custom) permet de restaurer sélectivement et en parallèle.",
+  ex:`pg_dump -Fc -d gis -n reference -f reference.dump   # un seul schéma
+pg_restore -d gis --data-only -t commune gis.dump   # une seule table`,
+  p:"pg_dump ne sauvegarde pas les rôles ni les mots de passe : ils sont globaux au serveur. Ajoutez toujours pg_dumpall -g à votre routine."
+},
+"Entretien":{
+  q:"PostgreSQL ne supprime pas physiquement les lignes modifiées : il les marque mortes, et VACUUM les recycle. ANALYZE, lui, met à jour les statistiques dont le planificateur a besoin pour choisir un bon plan.",
+  ex:`VACUUM (ANALYZE, VERBOSE) parcelle;
+
+-- où sont les lignes mortes ?
+SELECT relname, n_live_tup, n_dead_tup
+FROM pg_stat_user_tables ORDER BY n_dead_tup DESC LIMIT 10;`,
+  p:"VACUUM FULL récupère l'espace disque mais verrouille complètement la table : jamais en heures ouvrées. Le VACUUM ordinaire, lui, n'empêche personne de travailler."
+},
+"Surveiller":{
+  q:"Quand « la base est lente », ces trois requêtes donnent la réponse en une minute : qui fait quoi, depuis combien de temps, et qui attend quoi.",
+  ex:`SELECT pid, usename, state, now() - query_start AS duree, left(query, 80)
+FROM pg_stat_activity
+WHERE state <> 'idle' ORDER BY duree DESC;
+
+SELECT pg_cancel_backend(12345);      -- annuler la requête (poli)
+SELECT pg_terminate_backend(12345);   -- couper la connexion (brutal)`,
+  p:"Essayez toujours pg_cancel_backend avant pg_terminate_backend : la première laisse la transaction s'annuler proprement.",
+  doc:[[PG+'monitoring-stats.html','Vues de statistiques (fr)']]
+},
+"Configuration":{
+  q:"Trois paramètres suffisent à améliorer nettement une instance de travail SIG : shared_buffers (cache), work_mem (tris et jointures), maintenance_work_mem (création d'index, VACUUM).",
+  ex:`SHOW work_mem;
+ALTER SYSTEM SET maintenance_work_mem = '1GB';
+SELECT pg_reload_conf();
+
+-- pour une session lourde seulement, sans toucher au serveur :
+SET work_mem = '256MB';`,
+  p:"work_mem s'applique par opération de tri, pas par connexion : une valeur trop élevée multipliée par 50 connexions peut saturer la mémoire du serveur.",
+  doc:[[PG+'runtime-config.html','Configuration du serveur (fr)']]
+}
+
+};
+
 /* =======================================================================
    DONNÉES DE LA CARTE
    n = note ; ch = enfants ; feuille = nœud sans enfants
@@ -826,6 +1940,7 @@ const DATA = [
    RENDU
    ======================================================================= */
 const map = document.getElementById('map');
+const NODE_INDEX = new Map();
 const wires = document.getElementById('wires');
 let leafCount = 0;
 
@@ -847,6 +1962,15 @@ function makeNode(node, depth, colour){
     b.append(car, lab);
     b.addEventListener('click', () => { sub.classList.toggle('collapsed'); draw(); });
     nd.appendChild(b);
+    NODE_INDEX.set(node.t, sub);
+    if (FICHES[node.t]){
+      const inf = document.createElement('button');
+      inf.type = 'button'; inf.className = 'info'; inf.textContent = 'i';
+      inf.title = 'Explication + exemple concret';
+      inf.setAttribute('aria-label', 'Ouvrir la fiche : ' + node.t);
+      inf.addEventListener('click', e => { e.stopPropagation(); openFiche(node.t); });
+      nd.appendChild(inf);
+    }
   } else {
     leafCount++;
     const code = document.createElement('code');
@@ -1019,6 +2143,105 @@ let tmr;
 q.addEventListener('input', () => { clearTimeout(tmr); tmr = setTimeout(filter, 140); });
 document.getElementById('clr').addEventListener('click', () => { q.value = ''; filter(); q.focus(); });
 
+
+/* ---------- panneau de fiche ---------- */
+const fiche = document.getElementById('fiche');
+const fBody = document.getElementById('fiche-body');
+const fTitre = document.getElementById('fiche-titre');
+const fKind = document.getElementById('fiche-kind');
+
+function el(tag, cls, txt){
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt !== undefined) e.textContent = txt;
+  return e;
+}
+
+function openFiche(key){
+  const f = FICHES[key];
+  if (!f) return;
+  const node = NODE_INDEX.get(key);
+  const branch = node ? node.closest('[data-branch]') : null;
+  const colour = branch ? getComputedStyle(branch).getPropertyValue('--c').trim() : '#2E3A46';
+  fiche.style.setProperty('--c', colour);
+
+  fTitre.textContent = f.ti || key;
+  fKind.textContent = key.startsWith('__') ? 'Guide' : (branch && branch.id === (node && node.id) ? 'Branche' : 'Sous-branche');
+  fBody.innerHTML = '';
+
+  fBody.appendChild(el('h3', null, 'À quoi ça sert'));
+  fBody.appendChild(el('p', null, f.q));
+
+  if (f.li){
+    const ul = el('ul');
+    f.li.forEach(t => { const li = el('li'); li.innerHTML = t; ul.appendChild(li); });
+    fBody.appendChild(ul);
+  }
+
+  if (f.ex){
+    fBody.appendChild(el('h3', null, 'Exemple concret'));
+    const pre = el('pre', null, f.ex);
+    fBody.appendChild(pre);
+    const cp = el('button', 'excopy', 'Copier l\u2019exemple');
+    cp.addEventListener('click', () => { copy(f.ex, cp); });
+    fBody.appendChild(cp);
+  }
+
+  if (f.p){
+    fBody.appendChild(el('h3', null, 'Piège fréquent'));
+    fBody.appendChild(el('div', 'piege', f.p));
+  }
+
+  if (f.see && f.see.length){
+    fBody.appendChild(el('h3', null, 'Voir aussi dans la carte'));
+    const box = el('div', 'voir');
+    f.see.forEach(t => {
+      const b = el('button', null, t);
+      b.addEventListener('click', () => gotoNode(t));
+      box.appendChild(b);
+    });
+    fBody.appendChild(box);
+  }
+
+  if (f.doc && f.doc.length){
+    fBody.appendChild(el('h3', null, 'Pour aller plus loin'));
+    const box = el('div', 'liens');
+    f.doc.forEach(d => {
+      const a = document.createElement('a');
+      a.href = d[0]; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = d[1];
+      box.appendChild(a);
+    });
+    fBody.appendChild(box);
+  }
+
+  fiche.classList.add('on');
+  fiche.setAttribute('aria-hidden', 'false');
+  fBody.scrollTop = 0;
+  document.getElementById('fiche-close').focus();
+}
+
+function closeFiche(){
+  fiche.classList.remove('on');
+  fiche.setAttribute('aria-hidden', 'true');
+}
+
+function gotoNode(titre){
+  const node = NODE_INDEX.get(titre);
+  if (!node) return;
+  let p = node;
+  while (p && p !== map){ p.classList.remove('collapsed','hidden'); p = p.parentElement.closest('.sub'); }
+  draw();
+  node.scrollIntoView({behavior:'smooth', block:'center', inline:'nearest'});
+  const nd = node.firstElementChild;
+  nd.classList.add('flash');
+  setTimeout(() => nd.classList.remove('flash'), 1800);
+  if (FICHES[titre]) openFiche(titre);
+}
+
+document.getElementById('fiche-close').addEventListener('click', closeFiche);
+document.getElementById('aide').addEventListener('click', () => openFiche('__UI'));
+document.getElementById('guide').addEventListener('click', () => openFiche('__PARCOURS'));
+
 /* ---------- commandes ---------- */
 document.getElementById('expand').addEventListener('click', () => {
   map.querySelectorAll('.sub').forEach(s => s.classList.remove('collapsed')); draw();
@@ -1029,6 +2252,7 @@ document.getElementById('print').addEventListener('click', () => {
   draw(); setTimeout(() => window.print(), 250);
 });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && fiche.classList.contains('on')){ closeFiche(); return; }
   if (e.key === '/' && document.activeElement !== q){ e.preventDefault(); q.focus(); }
   if (e.key === 'Escape' && document.activeElement === q){ q.value = ''; filter(); }
 });
